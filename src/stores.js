@@ -15,11 +15,17 @@ export const DREXItem = writable({
 });
 
 export var state = writable({
+	activeRail: '',
+	activePrimary: '',
+	railSaved: false,
+	itemSaved: false,
 	objectModalOpen: false,
 	fileBrowserModalOpen: false,
 	flagNewOrExisting: 'existing',
 	activeCategory: '',
-	errorMessage: ''
+	errorMessage: '',
+	railMapMediaIndex: 0,
+	railMapMediaTypeIndex: 0
 })
 
 export var fileList = writable({});
@@ -37,3 +43,26 @@ export var newItem = writable({
 });
 
 export var listItemsOfType = writable([]);
+
+export var RailMap = writable({});
+
+export var typePlurals = writable({
+	story: 'stories',
+	artifact: 'artifacts',
+	object: 'objects',
+	musicalmoment: 'musicalmoments',
+	factoryfootage: 'factoryfootage',
+	oralhistory: 'oralhistories'
+})
+
+export var mediaTypes = writable([
+	'musicalmoment',
+	'factoryfootage',
+	'oralhistory'
+]);
+
+export var prettyMediaTypes = writable({
+	musicalmoments: 'Musical Moments',
+	factoryfootage: 'Factory Footage',
+	oralhistories: 'Oral Histories'
+});

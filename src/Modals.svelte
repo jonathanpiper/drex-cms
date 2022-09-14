@@ -1,6 +1,6 @@
 <script>
-	import { Modal, ModalHeader, ModalBody, ModalFooter, Form, FormGroup, Label, Input, Button } from 'sveltestrap';
-	import { state, fileList, drexPath, activeFile, newItem, listItemsOfType } from './stores';
+	import { Modal, ModalHeader, ModalBody, ModalFooter, Form, FormGroup, Label, Input, Button, TabContent } from 'sveltestrap';
+	import { RailMap, state, fileList, drexPath, activeFile, newItem, listItemsOfType, DREXItem, typePlurals, mediaTypes } from './stores';
 	import { createEventDispatcher, onMount } from 'svelte';
 
 	let dispatch = createEventDispatcher();
@@ -19,17 +19,16 @@
 		});
 	}
 
-	function addExistingItem(item, category) {
+	function addExistingItem(item, type) {
 		dispatch('addExistingItem', {
 			item: item,
-			category: category,
+			type: type,
 		});
 	}
 
-	function addNewItem(item, category) {
+	function addNewItem(item) {
 		dispatch('addNewItem', {
 			item: item,
-			category: category,
 		});
 	}
 </script>
@@ -65,37 +64,72 @@
 		>
 			Create new item
 		</p>
-		{#if $newItem.type == 'story'}
-			{#if $state.flagNewOrExisting == 'existing'}
-				<h4 class="top-spacer">Select an existing story</h4>
-				{#if Object.keys($listItemsOfType).length > 0}
-					{#each $listItemsOfType as Item}
-						<div
-							class="top-spacer"
-							on:click={() => {
-								addExistingItem(Item, $state.activeCategory);
-							}}
-						>
-							<h5>{Item.identifier}</h5>
-							<h6>{Item.content.title}</h6>
-							<span>{Item.content.body.slice(0, 120)}...</span>
-						</div>
-					{/each}
-				{/if}
-			{:else}
-				<FormGroup>
-					<Label>Enter a unique identifier for the new {$newItem.type}:</Label>
-					<Input type="text" bind:value={$newItem.identifier} />
-				</FormGroup>
-				<FormGroup>
-					<Label>Title:</Label>
-					<Input type="text" bind:value={$newItem.content['title']} />
-				</FormGroup>
-				<FormGroup>
-					<Label>Body:</Label>
-					<Input type="textarea" rows="6" bind:value={$newItem.content['body']} />
-				</FormGroup>
+		{#if $state.flagNewOrExisting == 'existing'}
+			{#if Object.keys($listItemsOfType).length > 0}
+				<h4 class="top-spacer">Select an existing {$newItem.type}</h4>
+				{#each $listItemsOfType as Item}
+					{#if $newItem.type == 'story'}
+						{#if $RailMap.content[$RailMap.content.findIndex((t) => t.contentType == $typePlurals[$newItem.type])].content.indexOf(Item.identifier) == -1}
+							<div
+								class="top-spacer"
+								on:click={() => {
+									addExistingItem(Item, $newItem.type);
+								}}
+							>
+								<h5>{Item.identifier}</h5>
+								<h6>{Item.content.title}</h6>
+								<span>{Item.content.body.slice(0, 120)}...</span>
+							</div>
+						{/if}
+					{:else if $mediaTypes.indexOf($newItem.type) != -1}
+						<!-- <h5>{ $RailMap.content[$state.railMapMediaIndex].content }</h5> -->
+						{#if $RailMap.content[$state.railMapMediaIndex].content[$RailMap.content[$state.railMapMediaIndex].content.findIndex((t) => t.contentType == $typePlurals[$newItem.type])].content.indexOf(Item.identifier) == -1}
+							<div
+								class="top-spacer"
+								on:click={() => {
+									addExistingItem(Item, $newItem.type);
+								}}
+							>
+								<h5>{Item.identifier}</h5>
+							</div>
+						{/if}
+					{/if}
+				{/each}
 			{/if}
+		{:else if $newItem.type == 'story'}
+			<FormGroup>
+				<Label>Enter a unique identifier for the new {$newItem.type}:</Label>
+				<Input type="text" bind:value={$newItem.identifier} />
+			</FormGroup>
+			<FormGroup>
+				<Label>Title:</Label>
+				<Input type="text" bind:value={$newItem.content['title']} />
+			</FormGroup>
+			<FormGroup>
+				<Label>Body:</Label>
+				<Input type="textarea" rows="6" bind:value={$newItem.content['body']} />
+			</FormGroup>
+		{:else if $newItem.type == 'musicalmoment'}
+			<FormGroup>
+				<Label>Enter a unique identifier for the new {$newItem.type}:</Label>
+				<Input type="text" bind:value={$newItem.identifier} />
+			</FormGroup>
+			<FormGroup>
+				<Label>Title:</Label>
+				<Input type="text" bind:value={$newItem.content['title']} />
+			</FormGroup>
+			<FormGroup>
+				<Label>Person:</Label>
+				<Input type="text" bind:value={$newItem.content['person']} />
+			</FormGroup>
+			<FormGroup>
+				<Label>Instrument:</Label>
+				<Input type="text" bind:value={$newItem.content['instrument']} />
+			</FormGroup>
+			<FormGroup>
+				<Label>Credit:</Label>
+				<Input type="text" bind:value={$newItem.content['credit']} />
+			</FormGroup>
 		{/if}
 		{#if $state.errorMessage != ''}
 			{$state.errorMessage}
@@ -106,7 +140,7 @@
 			<Button
 				color="primary"
 				on:click={() => {
-					addNewItem($newItem, $state.activeCategory);
+					addNewItem($newItem);
 				}}>Save</Button
 			>
 		{/if}

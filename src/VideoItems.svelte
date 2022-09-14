@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { DREXItem, activeMediaCategory, mediaPath } from './stores';
+	import { DREXItem, activeMediaCategory, mediaPath, typePlurals, prettyMediaTypes } from './stores';
+	import { Input } from 'sveltestrap';
 	import { createEventDispatcher } from 'svelte';
 	var clip = $DREXItem.content.clip;
 
 	$: if (Object.keys($DREXItem).length != 0) {
 		if (clip != $DREXItem.content.clip) {
 			const video = document.getElementById('video');
+			video.load();
 			video.pause();
 			video.load();
 		}
@@ -20,67 +22,88 @@
 			index: index,
 		});
 	}
+
+	function toggleModal(modal, options) {
+		dispatch('toggleModal', {
+			modal: modal,
+			options: options,
+		});
+	}
 </script>
 
-{#if Object.keys($DREXItem).length != 0}
-	{#if $activeMediaCategory == 'music'}
+{#if $DREXItem.content}
+	{#if $DREXItem.type == 'musicalmoment'}
 		<div>
 			Clip name:
-			<h4 contenteditable="true" bind:innerHTML={$DREXItem.content.title} />
+			<Input type="text" bind:value={$DREXItem.content.title} />
 		</div>
 		<div>
 			Person/performer:
-			<h5 contenteditable="true" bind:innerHTML={$DREXItem.content.person} />
+			<Input type="text" bind:value={$DREXItem.content.person} />
 		</div>
 		<div>
 			Instrument featured:
-			<h5 contenteditable="true" bind:innerHTML={$DREXItem.content.instrument} />
+			<Input type="text" bind:value={$DREXItem.content.instrument} />
 		</div>
 		<div>
 			Credit of:
-			<h5 contenteditable="true" bind:innerHTML={$DREXItem.content.credit} />
+			<Input type="text" bind:value={$DREXItem.content.credit} />
 		</div>
-	{:else if $activeMediaCategory == 'factory'}
+	{:else if $DREXItem.type == 'factoryfootage'}
 		<div>
 			Clip label:
-			<h4 contenteditable="true" bind:innerHTML={$DREXItem.content.label} />
+			<Input type="text" bind:value={$DREXItem.content.label} />
 		</div>
 		<div>
 			Caption:
-			<p contenteditable="true" bind:innerHTML={$DREXItem.content.caption} />
+			<Input type="text" bind:value={$DREXItem.content.caption} />
 		</div>
-	{:else if $activeMediaCategory == 'oralhistory'}
+	{:else if $DREXItem.type == 'oralhistory'}
 		<div>
 			Clip label:
-			<h4 contenteditable="true" bind:innerHTML={$DREXItem.content.label} />
+			<Input type="text" bind:value={$DREXItem.content.label} />
 		</div>
 		<div>
 			Summary:
-			<p contenteditable="true" bind:innerHTML={$DREXItem.content.summary} />
+			<Input type="text" bind:value={$DREXItem.content.summary} />
 		</div>
 	{/if}
 	<div>
 		<p>Thumbnail image:</p>
-		<img src={$mediaPath + 'images/' + $DREXItem.content.thumbnail} alt={$DREXItem.content.thumbnail} />
+		{#if $DREXItem.content.thumbnail}
+			<img src={$mediaPath + 'images/' + $DREXItem.content.thumbnail} alt={$DREXItem.content.thumbnail} />
+		{/if}
 		<p
 			class="filelink"
 			on:click={() => {
-				dispatchFileBrowser('images', 'thumbnail');
+				toggleModal('file', { type: 'images', role: 'thumbnail' });
 			}}
 		>
-			{$DREXItem.content.thumbnail}
+			{#if $DREXItem.content.thumbnail}
+				{$DREXItem.content.thumbnail}
+			{:else}
+				Add thumbnail image
+			{/if}
 		</p>
 	</div>
+
 	<video id="video" controls>
-		<source src={$mediaPath + 'videos/' + $DREXItem.content.clip} />
+		{#if $DREXItem.content.clip}
+			<source src={$mediaPath + 'videos/' + $DREXItem.content.clip} />
+		{/if}
 		<track kind="captions" />
 	</video>
+
 	<p
 		class="filelink"
 		on:click={() => {
-			dispatchFileBrowser('videos', 'clip');
+			toggleModal('file', { type: 'videos', role: 'clip' });
 		}}
 	>
-		{$DREXItem.content.clip}
+		{#if $DREXItem.content.clip}
+			{$DREXItem.content.clip}
+		{:else}
+			Add clip file
+		{/if}
 	</p>
 {/if}
