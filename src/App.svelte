@@ -1,5 +1,5 @@
 <script>
-	import { Badge, Form, FormGroup, Input, Label, Container, Row, Col, Button, Modal, ModalBody, ModalFooter, ModalHeader } from 'sveltestrap';
+	import { Badge, Form, FormGroup, Input, Label, Container, Row, Col, Button, Modal, ModalBody, ModalFooter, ModalHeader, Navbar, NavbarBrand, Nav, NavItem, NavLink, Styles } from 'sveltestrap';
 	import { titleCase, getKeyByValue } from './functions';
 	import StoryItems from './StoryItems.svelte';
 	import VideoItems from './VideoItems.svelte';
@@ -10,16 +10,34 @@
 	import DwellCarousel from './DwellCarousel.svelte';
 	import { onMount, afterUpdate } from 'svelte';
 	import { RailMap, state, DREXItem, activeMediaCategory, mediaPath, drexPath, fileList, activeFile, newItem, listItemsOfType, typePlurals, mediaTypes } from './stores';
-	import { PlusCircle, MinusCircle, ArrowDown, ArrowUp, ArrowLeft, ArrowRight } from 'lucide-svelte';
+	import { PlusCircle, MinusCircle, ArrowDown, ArrowUp, ArrowLeft, ArrowRight, RefreshCw, Save, Send } from 'lucide-svelte';
 	import { arrayMoveMutable } from 'array-move';
 	var railSelection = '';
-	//$state.activeRail = '';
 	var LoadTrigger;
 	var itemSaved = false;
 	var activeFileRole;
 	var activeFileIndex;
 	var listRails = [];
 
+	onMount(async () => {
+		listRails = await getAllItemsOfType('rail');
+		listRails = listRails.filter((rail) => {
+			return rail.hasOwnProperty('identifier') === true;
+		});
+		listRails.sort((a, b) => {
+			var fa = a.identifier,
+				fb = b.identifier;
+			if (fa < fb) {
+				return -1;
+			}
+			if (fa > fb) {
+				return 1;
+			}
+			return 0;
+		});
+	});
+
+	//Functions for handling modal windows.
 	const toggleObjectModal = () => ($state.objectModalOpen = !$state.objectModalOpen);
 	const toggleFileBrowserModal = () => ($state.fileBrowserModalOpen = !$state.fileBrowserModalOpen);
 
@@ -37,6 +55,7 @@
 		}
 	}
 
+	//Functions for handling dispatched events from components.
 	function dispatchToggleModal(event) {
 		var modal = event.detail.modal;
 		var options = {};
@@ -46,30 +65,60 @@
 		toggleModal(modal, options);
 	}
 
+	async function dispatchGetItem(event) {
+		console.log(event.detail);
+		const type = event.detail.type;
+		const item = event.detail.item;
+		getItem(item, type);
+	}
+
+	function dispatchModifyRailItem(event) {
+		const action = event.detail.action;
+		const item = event.detail.item;
+		const type = event.detail.type;
+		const categoryTitle = event.detail.categoryTitle;
+		switch (action) {
+			case 'remove':
+				removeRailMapItem(item, type, categoryTitle);
+				break;
+			case 'moveUp':
+				moveRailMapItem('up', item, type, categoryTitle);
+				break;
+			case 'moveDown':
+				moveRailMapItem('down', item, type, categoryTitle);
+				break;
+		}
+	}
+
+	function dispatchSaveRail(event) {
+		const rail = event.detail.rail;
+		saveRail(rail);
+	}
+
+	function dispatchModifyDwellImageArray(event) {
+		const image = event.detail.image;
+		const action = event.detail.action;
+		const index = event.detail.index;
+		modifyDwellImageArray(image, action, index);
+	}
+
+	function dispatchInitializeNewItem(event) {
+		const type = event.detail.type;
+		const categoryTitle = event.detail.categoryTitle;
+		initializeNewItem(type, categoryTitle);
+	}
+
 	async function getRail(rail) {
 		var response = await fetch($drexPath + 'map/' + rail);
 		var promise = await response.json();
 		return promise;
 	}
 
-	onMount(async () => {
-		listRails = await getAllItemsOfType('rail');
-		listRails = listRails.filter((rail) => {
-			return rail.hasOwnProperty('identifier') === true;
-		});
-	});
-
 	async function loadRail(rail) {
 		console.log($state.activeRail); // = rail;
 		$RailMap = await getRail(rail);
 		$state.railMapMediaIndex = $RailMap.content.findIndex((t) => t.contentType == 'media');
 		LoadTrigger = 'go';
-	}
-
-	$: if ($state.activeRail != railSelection.split(' ')[0]) {
-		$state.activeRail = railSelection.split(' ')[0];
-		loadRail($state.activeRail);
-		resetDREXItem();
 	}
 
 	async function getItem(item, type) {
@@ -79,13 +128,6 @@
 		$DREXItem = promise;
 		console.log($DREXItem);
 		$state.itemSaved = false;
-	}
-
-	async function dispatchGetItem(event) {
-		console.log(event.detail);
-		const type = event.detail.type;
-		const item = event.detail.item;
-		getItem(item, type);
 	}
 
 	async function saveItem(item) {
@@ -238,29 +280,6 @@
 		toggleFileBrowserModal();
 	}
 
-	function dispatchModifyRailItem(event) {
-		const action = event.detail.action;
-		const item = event.detail.item;
-		const type = event.detail.type;
-		const categoryTitle = event.detail.categoryTitle;
-		switch (action) {
-			case 'remove':
-				removeRailMapItem(item, type, categoryTitle);
-				break;
-			case 'moveUp':
-				moveRailMapItem('up', item, type, categoryTitle);
-				break;
-			case 'moveDown':
-				moveRailMapItem('down', item, type, categoryTitle);
-				break;
-		}
-	}
-
-	function dispatchSaveRail(event) {
-		const rail = event.detail.rail;
-		saveRail(rail);
-	}
-
 	function removeRailMapItem(item, type, categoryTitle) {
 		const confirmation = confirm('Remove ' + item + ' from rail ' + $state.activeRail + '? Note that this only removes the item from this rail; it does not delete the item from the database.');
 		const typeIndex = $RailMap.content.findIndex((t) => t.title == categoryTitle);
@@ -280,12 +299,6 @@
 				resetDREXItem();
 			}
 		}
-	}
-
-	function dispatchInitializeNewItem(event) {
-		const type = event.detail.type;
-		const categoryTitle = event.detail.categoryTitle;
-		initializeNewItem(type, categoryTitle);
 	}
 
 	function moveRailMapItem(direction, item, type, categoryTitle) {
@@ -329,13 +342,6 @@
 		}
 	}
 
-	function dispatchModifyDwellImageArray(event) {
-		const image = event.detail.image;
-		const action = event.detail.action;
-		const index = event.detail.index;
-		modifyDwellImageArray(image, action, index);
-	}
-
 	function modifyDwellImageArray(image, action, imageIndex) {
 		if (imageIndex != -1) {
 			switch (action) {
@@ -352,83 +358,126 @@
 			$RailMap.dwell.images = $RailMap.dwell.images;
 		}
 	}
+
+	$: if ($state.activeRail != railSelection.split(' ')[0]) {
+		$state.activeRail = railSelection.split(' ')[0];
+		if ($state.activeRail != '') {
+			loadRail($state.activeRail);
+		}
+		resetDREXItem();
+	}
+
+	async function publishRail(rail) {
+		await fetch($drexPath + 'push/media/' + rail);
+	}
+
+	async function reloadRail(rail) {
+		await fetch($drexPath + 'reload/' + rail);
+	}
+
+	function gotoRail(railIdentifier) {
+		railSelection = railIdentifier;
+	}
 </script>
 
-<svelte:head>
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" />
-</svelte:head>
+<Styles />
 
 <Modals on:toggleModal={dispatchToggleModal} on:setFile={setFile} on:addExistingItem={addExistingItem} on:addNewItem={addNewItem} />
-<div class="content-container">
-	<FormGroup>
-		<Label for="railSelect">Select a rail to edit:</Label>
-		<Input type="select" id="railSelect" bind:value={railSelection}>
-			<option />
-			{#each listRails as Rail}
-				<option>{Rail.identifier} - {Rail.title}</option>
-			{/each}
-		</Input>
-	</FormGroup>
-	{#if LoadTrigger}
-		<Row>
-			<Input bsSize="lg" bind:value={$RailMap.title} />
-			<Input type="textarea" rows="6" bind:value={$RailMap.body} />
-		</Row>
-		<Row>
-			<DwellCarousel on:modifyDwellImageArray={dispatchModifyDwellImageArray} on:toggleModal={dispatchToggleModal} />
-		</Row>
-		<div class="app-content top-spacer">
-			<div>
-				<PrimaryList on:getItem={dispatchGetItem} on:modifyRailItem={dispatchModifyRailItem} on:initializeNewItem={dispatchInitializeNewItem} on:resetDREXItem={resetDREXItem} />
-				<div class="top-spacer">
-					<Button
-						color="primary"
-						on:click={() => {
-							saveRail($RailMap);
-						}}>Save {titleCase($state.activeRail)}</Button
-					>
-					{#if $state.railSaved}<Badge color="success">Saved!</Badge>{/if}
+<Container fluid>
+	<Navbar color="light" light>
+		<NavbarBrand>DREX Content Management System</NavbarBrand>
+	</Navbar>
+	<Row>
+		<Col xs="1">
+			<Nav vertical>
+				{#each listRails as Rail}
+				<NavItem>
+					<NavLink on:click={() => gotoRail(Rail.identifier)}>{Rail.title}</NavLink>
+				</NavItem>
+				{/each}
+			</Nav>
+		</Col>
+		<Col>
+			{#if LoadTrigger}
+			<Row>
+				<Input bsSize="lg" bind:value={$RailMap.title} />
+				<Input type="textarea" rows="6" bind:value={$RailMap.body} />
+			</Row>
+			<Row>
+				<DwellCarousel on:modifyDwellImageArray={dispatchModifyDwellImageArray} on:toggleModal={dispatchToggleModal} />
+			</Row>
+			<div class="app-content top-spacer">
+				<div>
+					<PrimaryList on:getItem={dispatchGetItem} on:modifyRailItem={dispatchModifyRailItem} on:initializeNewItem={dispatchInitializeNewItem} on:resetDREXItem={resetDREXItem} />
+				</div>
+				<div>
+					{#if $state.activePrimary != ''}
+						<SecondaryList on:getItem={dispatchGetItem} on:modifyRailItem={dispatchModifyRailItem} on:initializeNewItem={dispatchInitializeNewItem} on:toggleModal={dispatchToggleModal} />
+					{/if}
+				</div>
+				<div>
+					<Row>
+						{#await $DREXItem then}
+							{#if typeof $DREXItem === 'object' && $DREXItem.type}
+								{#if $DREXItem.type == 'artifact'}
+									<ObjectItems />
+								{:else if $DREXItem.type == 'story'}
+									<StoryItems on:toggleModal={dispatchToggleModal} on:modifyImageArray={modifyImageArray} on:setFile={setFile} />
+								{:else if $DREXItem.type == 'oralhistory' || $DREXItem.type == 'factoryfootage' || $DREXItem.type == 'musicalmoment'}
+									<VideoItems on:toggleModal={dispatchToggleModal} />
+								{/if}
+								<div class="top-spacer">
+									<br />
+									<Button
+										color="primary"
+										on:click={() => {
+											saveItem($DREXItem);
+										}}>Save</Button
+									>
+									{#if $state.itemSaved}<Badge color="success">Saved!</Badge>{/if}
+								</div>
+							{/if}
+						{/await}
+					</Row>
 				</div>
 			</div>
-			<div>
-				{#if $state.activePrimary != ''}
-					<SecondaryList on:getItem={dispatchGetItem} on:modifyRailItem={dispatchModifyRailItem} on:initializeNewItem={dispatchInitializeNewItem} on:toggleModal={dispatchToggleModal} />
-				{/if}
+			<div class="bottom-buttons">
+				<div />
+				<Button
+					size="lg"
+					color="success"
+					on:click={() => {
+						saveRail($RailMap);
+					}}><Save /> Save {titleCase($state.activeRail)}</Button
+				>
+				<Button
+					size="lg"
+					color="info"
+					on:click={() => {
+						publishRail($state.activeRail);
+					}}><Send /> Publish {titleCase($state.activeRail)}</Button
+				>
+				<Button
+					size="lg"
+					color="primary"
+					on:click={() => {
+						reloadRail($state.activeRail);
+					}}><RefreshCw /> Reload {titleCase($state.activeRail)}</Button
+				>
 			</div>
-			<div>
-				<Row>
-					{#await $DREXItem then}
-						{#if typeof $DREXItem === 'object' && $DREXItem.type}
-							{#if $DREXItem.type == 'artifact'}
-								<ObjectItems />
-							{:else if $DREXItem.type == 'story'}
-								<StoryItems on:toggleModal={dispatchToggleModal} on:modifyImageArray={modifyImageArray} on:setFile={setFile} />
-							{:else if $DREXItem.type == 'oralhistory' || $DREXItem.type == 'factoryfootage' || $DREXItem.type == 'musicalmoment'}
-								<VideoItems on:toggleModal={dispatchToggleModal} />
-							{/if}
-							<div class="top-spacer">
-								<br />
-								<Button
-									color="primary"
-									on:click={() => {
-										saveItem($DREXItem);
-									}}>Save</Button
-								>
-								{#if $state.itemSaved}<Badge color="success">Saved!</Badge>{/if}
-							</div>
-						{/if}
-					{/await}
-				</Row>
-			</div>
-		</div>
-	{/if}
-</div>
+		{/if}
+		</Col>
+	</Row>
+
+</Container>
 
 <style>
-	.content-container {
+	.bottom-buttons {
+		margin-top: 60px;
 		width: 100%;
-		height: 100%;
-		margin: 0;
+		display: grid;
+		grid-template-columns: 7fr 1fr 1fr 1fr;
+		column-gap: 60px;
 	}
 	.app-content {
 		width: 100%;

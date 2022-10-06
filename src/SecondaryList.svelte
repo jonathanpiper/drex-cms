@@ -4,6 +4,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import { RailMap, state, typePlurals, mediaTypes, DREXItem, prettyMediaTypes, mediaPath } from './stores';
 	import { arrayMoveMutable } from 'array-move';
+	import { Input } from 'sveltestrap';
 
 	const dispatch = createEventDispatcher();
 
@@ -101,15 +102,22 @@
 			</ol>
 		{:else}
 			{#each RMContent.content as mediaType, Index}
-				<img src={$mediaPath + 'images/' + mediaType.heroImage} alt={mediaType.contentType} />
+				{#if mediaType.heroImage}
+					<img src={$mediaPath + 'images/' + mediaType.heroImage} alt={mediaType.contentType} />
+				{/if}
 				<p
 					class="filelink"
 					on:click={() => {
 						toggleModal('file', { type: 'images', role: 'mediaTypeHeroImage', index: Index });
 					}}
 				>
-					{mediaType.heroImage}
+					{#if mediaType.heroImage}
+						{mediaType.heroImage}
+					{:else}
+						Add thumbnail image
+					{/if}
 				</p>
+				<Input type="text" bind:value={mediaType.summary} placeholder="Summary (used for G2 Musical Moments)" />
 				<div class="item-row">
 					<h5>{$prettyMediaTypes[mediaType.contentType]}</h5>
 					{#if RMContent.content.findIndex((t) => t.contentType == mediaType.contentType) != 0}

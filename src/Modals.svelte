@@ -1,5 +1,5 @@
 <script>
-	import { Modal, ModalHeader, ModalBody, ModalFooter, Form, FormGroup, Label, Input, Button, TabContent } from 'sveltestrap';
+	import { Modal, ModalHeader, ModalBody, ModalFooter, Form, FormGroup, FormText, Label, Input, Button, TabContent } from 'sveltestrap';
 	import { RailMap, state, fileList, drexPath, activeFile, newItem, listItemsOfType, DREXItem, typePlurals, mediaTypes } from './stores';
 	import { createEventDispatcher, onMount } from 'svelte';
 
@@ -30,6 +30,20 @@
 		dispatch('addNewItem', {
 			item: item,
 		});
+	}
+
+	function submitForm(e) {
+		e.preventDefault();
+		const fileUpload = document.getElementById('newFileUpload');
+		console.log(fileUpload.files[0])
+		const formData = new FormData();
+		formData.append('fileUpload', fileUpload.files[0]);
+		fetch($drexPath + 'upload', {
+			method: 'POST',
+			body: formData,
+		})
+			.then((res) => console.log(res))
+			.catch((err) => ('Error occured', err));
 	}
 </script>
 
@@ -130,6 +144,32 @@
 				<Label>Credit:</Label>
 				<Input type="text" bind:value={$newItem.content['credit']} />
 			</FormGroup>
+		{:else if $newItem.type == 'factoryfootage'}
+			<FormGroup>
+				<Label>Enter a unique identifier for the new {$newItem.type}:</Label>
+				<Input type="text" bind:value={$newItem.identifier} />
+			</FormGroup>
+			<FormGroup>
+				<Label>Label:</Label>
+				<Input type="text" bind:value={$newItem.content['label']} />
+			</FormGroup>
+			<FormGroup>
+				<Label>Caption:</Label>
+				<Input type="text" bind:value={$newItem.content['caption']} />
+			</FormGroup>
+		{:else if $newItem.type == 'oralhistory'}
+			<FormGroup>
+				<Label>Enter a unique identifier for the new {$newItem.type}:</Label>
+				<Input type="text" bind:value={$newItem.identifier} />
+			</FormGroup>
+			<FormGroup>
+				<Label>Label:</Label>
+				<Input type="text" bind:value={$newItem.content['label']} />
+			</FormGroup>
+			<FormGroup>
+				<Label>Summary:</Label>
+				<Input type="text" bind:value={$newItem.content['summary']} />
+			</FormGroup>
 		{/if}
 		{#if $state.errorMessage != ''}
 			{$state.errorMessage}
@@ -160,14 +200,22 @@
 		}}>Select file</ModalHeader
 	>
 	<ModalBody>
+			<FormGroup>
+				<Label for="newFileUpload">Upload new file</Label>
+				<Input type="file" name="newFileUpload" id="newFileUpload" />
+				<FormText color="muted">This is some placeholder block-level help text for the above input. It's a bit lighter and easily wraps to a new line.</FormText>
+				<Button type="submit" on:click={submitForm}>Upload</Button>
+			</FormGroup>
 		{#each $fileList.files as file}
-			<p
-				on:click={() => {
-					setFile(file, $activeFile.role, $activeFile.index);
-				}}
-			>
-				{file}
-			</p>
+			{#if file.substring(0, 1) != '.'}
+				<p
+					on:click={() => {
+						setFile(file, $activeFile.role, $activeFile.index);
+					}}
+				>
+					{file}
+				</p>
+			{/if}
 		{/each}
 	</ModalBody>
 	<ModalFooter />
