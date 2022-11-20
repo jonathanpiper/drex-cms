@@ -55,7 +55,6 @@ export function expandRail(map, newContent) {
 
 export function modifyImageArray(item, image, action) {
     const imageIndex = item.content.images.indexOf(image);
-    console.log(imageIndex);
     if (imageIndex != -1) {
         switch (action) {
             case 'remove':

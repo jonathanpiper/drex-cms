@@ -34,7 +34,7 @@
 	import RailsList from './RailsList.svelte';
 	import HomeScreen from './HomeScreen.svelte';
 	import { onMount, afterUpdate } from 'svelte';
-	import { RailMap, state, DREXItem, activeMediaCategory, fileList, activeFile, newItem, listItemsOfType, backupItem } from './stores';
+	import { RailMap, state, DREXItem, fileList, activeFile, newItem, listItemsOfType, backupItem } from './stores';
 	import { DREXPATH, MEDIAPATH, DEFAULTS } from './config';
 	import { PlusCircle, MinusCircle, ArrowDown, ArrowUp, ArrowLeft, ArrowRight, RefreshCw, Save, Send, XCircle } from 'lucide-svelte';
 	import { arrayMoveMutable } from 'array-move';
@@ -79,52 +79,36 @@
 		if (modal == 'object') {
 			toggleObjectModal();
 		} else if (modal == 'file') {
-			console.log(options);
 			$activeFile.type = options.type;
 			$activeFile.role = options.role;
 			$activeFile.index = options.index ? options.index : 0;
 			$activeFile.categoryIndex = options.categoryIndex ? options.categoryIndex : 0;
 			$state.fileUploadResult = '';
 			$state.fileUploadMessage = '';
-			console.log($activeFile.type);
 			$fileList = await getFileList($activeFile.type);
-			console.log($fileList);
 			toggleFileBrowserModal();
 		} else if (modal == 'editor') {
 			toggleEditorModal();
 		}
 	}
 
-	//Functions for handling dispatched events from components.
-
 	function modifyRailItem(options) {
-		console.log(options);
 		const action = options.action;
 		const item = options.item;
-		const type = options.type;
-		const categoryTitle = options.categoryTitle;
+		const itemIndex = options.itemIndex;
+		const categoryIndex = options.categoryIndex;
+		const mediaCategoryIndex = options.mediaCategoryIndex;
 		switch (action) {
 			case 'remove':
-				$RailMap = removeRailMapItem($RailMap, item, type, categoryTitle);
+				$RailMap.content = removeRailMapItem($RailMap.content, item, itemIndex, categoryIndex, mediaCategoryIndex);
 				break;
 			case 'moveUp':
-				$RailMap = moveRailMapItem($RailMap, 'up', item, type, categoryTitle);
+				$RailMap.content = moveRailMapItem($RailMap.content, 'up', itemIndex, categoryIndex, mediaCategoryIndex);
 				break;
 			case 'moveDown':
-				$RailMap = moveRailMapItem($RailMap, 'down', item, type, categoryTitle);
+				$RailMap.content = moveRailMapItem($RailMap.content, 'down', itemIndex, categoryIndex, mediaCategoryIndex);
 				break;
 		}
-	}
-
-	function dispatchSaveRail(event) {
-		const rail = event.detail.rail;
-		saveRail(rail);
-	}
-
-	function dispatchInitializeNewItem(event) {
-		const type = event.detail.type;
-		const categoryTitle = event.detail.categoryTitle;
-		initializeNewItem(type, categoryTitle);
 	}
 
 	async function getRail(rail) {
@@ -154,7 +138,6 @@
 			LoadTrigger = 'go';
 		} else {
 			configurationObject = await getConfig();
-			console.log(configurationObject);
 			$RailMap = {};
 			LoadTrigger = 'go';
 		}
@@ -167,7 +150,6 @@
 	async function getItem(item, type = '') {
 		var request = await fetch(DREXPATH + 'item/' + type + '/' + item);
 		var promise = await request.json();
-		console.log(promise);
 		return promise;
 	}
 
@@ -217,12 +199,6 @@
 		});
 		var promise = await request.json();
 		$state.errors['createNewItem'] = !promise.success;
-		console.log('ba');
-		// if (promise.success) {
-		// 	$state.errors['createNewItem'] = false;
-		// } else {
-		// 	$state.errors['createNewItem'] = true;
-		// }
 		$state.createItemInProgress = false;
 	}
 
@@ -294,7 +270,6 @@
 
 	async function addNewItem(item) {
 		const itemIndex = $listItemsOfType.findIndex((i) => i.identifier == item.identifier);
-		console.log(item, itemIndex);
 		if (itemIndex != -1) {
 			$state.errors.createNewItem = true;
 			return;
@@ -315,7 +290,6 @@
 	}
 
 	async function getFileList(fileType) {
-		console.log(fileType);
 		var request = await fetch(DREXPATH + 'filelist/' + fileType);
 		var promise = await request.json();
 		return promise;
@@ -331,7 +305,6 @@
 		} else if (fileRole == 'mediaTypeHeroImage') {
 			$RailMap.content[$state.mediaIndex].content[$activeFile.index].heroImage = file;
 		} else if (fileRole == 'dwellImages') {
-			console.log(file, fileRole, fileIndex);
 			$RailMap.dwell.images[fileIndex] = file;
 		} else if (fileRole == 'icon') {
 			$RailMap.content[categoryIndex].icon = file;
@@ -341,53 +314,29 @@
 		toggleFileBrowserModal();
 	}
 
-	function removeRailMapItem(map, item, type, categoryTitle) {
+	function removeRailMapItem(mapContent, item, itemIndex, categoryIndex, mediaCategoryIndex = '') {
 		const confirmation = confirm('Remove ' + item + ' from rail ' + $state.activeRail + '? Note that this only removes the item from this rail; it does not delete the item from the database.');
-		const typeIndex = map.content.findIndex((t) => t.title == categoryTitle);
-		console.log(categoryTitle, typeIndex);
 		if (confirmation) {
-			if (DEFAULTS.mediaTypes.indexOf(getKeyByValue(DEFAULTS.typePlurals, type)) == -1) {
-				const itemIndex = map.content[typeIndex].content.indexOf(item);
-				map.content[typeIndex].content.splice(itemIndex, 1);
-				map.content = map.content;
+			if (mediaCategoryIndex === '') {
+				mapContent[categoryIndex].content.splice(itemIndex, 1);
 			} else {
-				const mediaTypeIndex =
-					categoryTitle == ''
-						? map.content[$state.mediaIndex].content.findIndex((t) => t.contentType == type)
-						: map.content[$state.mediaIndex].content.findIndex((t) => t.title == categoryTitle);
-				const itemIndex = map.content[$state.mediaIndex].content[mediaTypeIndex].content.indexOf(item);
-				map.content[$state.mediaIndex].content[mediaTypeIndex].content.splice(itemIndex, 1);
-				map.content[$state.mediaIndex].content[mediaTypeIndex].content = $RailMap.content[$state.mediaIndex].content[mediaTypeIndex].content;
+				mapContent[categoryIndex].content[mediaCategoryIndex].content.splice(itemIndex, 1);
 			}
 			if ($DREXItem.identifier == item) {
 				resetDREXItem();
 			}
 		}
-		return map;
+		return mapContent;
 	}
 
-	function moveRailMapItem(map, direction, item, type, categoryTitle = '') {
-		console.log(direction, item, type, categoryTitle);
+	function moveRailMapItem(mapContent, direction, itemIndex, categoryIndex, mediaCategoryIndex = '') {
 		const increment = direction == 'up' ? -1 : 1;
-		const typeIndex = map.content.findIndex((t) => t.title == categoryTitle);
-		console.log(typeIndex);
-		var itemIndex;
-		if (DEFAULTS.mediaTypes.indexOf(getKeyByValue(DEFAULTS.typePlurals, type)) == -1) {
-			if (type == 'media') {
-				itemIndex = map.content[typeIndex].content.findIndex((t) => t.contentType == item);
-			} else {
-				itemIndex = map.content[typeIndex].content.indexOf(item);
-			}
-			arrayMoveMutable(map.content[typeIndex].content, itemIndex, itemIndex + increment);
+		if (mediaCategoryIndex === '') {
+			arrayMoveMutable(mapContent[categoryIndex].content, itemIndex, itemIndex + increment);
 		} else {
-			const mediaTypeIndex =
-				categoryTitle == ''
-					? map.content[$state.mediaIndex].content.findIndex((t) => t.contentType == type)
-					: map.content[$state.mediaIndex].content.findIndex((t) => t.title == categoryTitle);
-			const itemIndex = map.content[$state.mediaIndex].content[mediaTypeIndex].content.indexOf(item);
-			arrayMoveMutable(map.content[$state.mediaIndex].content[mediaTypeIndex].content, itemIndex, itemIndex + increment);
+			arrayMoveMutable(mapContent[categoryIndex].content[mediaCategoryIndex].content, itemIndex, itemIndex + increment);
 		}
-		return map;
+		return mapContent;
 	}
 
 	async function publishRail(rail) {
@@ -400,8 +349,6 @@
 
 	async function dispatchManager(event) {
 		const { f, p } = event.detail;
-		// const p = event.detail.p;
-		console.log(f, p);
 		switch (f) {
 			case 'modifyDwellImageArray':
 				$RailMap = modifyDwellImageArray($RailMap, p.image, p.action, p.index);
@@ -420,7 +367,6 @@
 					loadRail($state.activeRail);
 					$DREXItem = JSON.parse(JSON.stringify($newItem));
 				}
-				console.log($DREXItem);
 				break;
 			case 'addExistingItem':
 				addExistingItem(p.item, p.type);
@@ -446,14 +392,12 @@
 				break;
 			case 'initializeNewItem':
 				resetNewItem();
-				console.log(p.contentType);
 				if (p.contentType == 'custom') {
 					$newItem.type = 'custom';
 				} else {
 					$newItem.type = getKeyByValue(DEFAULTS.typePlurals, p.contentType.toLowerCase());
 				}
 				$state.activeCategory = p.categoryTitle;
-				console.log($state.activeCategory, $newItem.type);
 				$listItemsOfType = await getAllItemsOfType($newItem.type);
 				toggleModal('object');
 				break;
@@ -468,7 +412,6 @@
 				break;
 			case 'modifyRailItem':
 				modifyRailItem(p);
-				console.log(p);
 				break;
 			case 'saveItem':
 				if (saveItem(p.item)) {
@@ -488,10 +431,10 @@
 <div class="fixed w-full z-50">
 	<Header />
 </div>
-<div class="h-full w-96 px-3 py-2 bg-gray-200 fixed top-24 z-10">
+<div class="h-full w-96 px-3 py-2 bg-gray-200 fixed top-20 z-10">
 	<RailsList {listRails} on:execute={dispatchManager} />
 </div>
-<div class="absolute top-24 w-full pl-96">
+<div class="absolute top-20 w-full pl-96">
 	<div class="p-3">
 		{#if LoadTrigger}
 			{#if $state.activeRail != 'config'}
@@ -503,15 +446,10 @@
 				</div>
 				<div class="mt-4 w-full grid grid-cols-3 gap-4">
 					<div>
-						<PrimaryList
-							bind:railContent={$RailMap.content}
-							on:initializeNewItem={dispatchInitializeNewItem}
-							on:resetDREXItem={resetDREXItem}
-							on:execute={dispatchManager}
-						/>
+						<PrimaryList bind:railContent={$RailMap.content} on:execute={dispatchManager} />
 					</div>
 					<div class="col-span-2">
-						<ItemEditor on:execute={dispatchManager} />
+						<ItemEditor bind:editItem={$DREXItem} on:execute={dispatchManager} />
 					</div>
 				</div>
 				<div class="mt-12 w-full grid grid-cols-4 gap-4">

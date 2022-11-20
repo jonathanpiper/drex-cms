@@ -1,13 +1,5 @@
 import { writable } from 'svelte/store';
 
-// const serverPath = 'http://192.168.168.180:9000/';
-
-// export const DREXPATH = writable(serverPath + 'drex/');
-
-// export const MEDIAPATH = writable(serverPath + 'mediapool/');
-
-export const activeMediaCategory = writable('');
-
 export const DREXItem = writable({
 	identifier: '',
 	type: '',

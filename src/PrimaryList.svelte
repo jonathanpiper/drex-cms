@@ -1,5 +1,4 @@
 <script>
-	//import { PlusCircle, ArrowDown, ArrowUp, MinusCircle, ArrowRight } from 'lucide-svelte';
 	import { Form, Badge, FormGroup, Row, Input, Button, Accordion, AccordionItem, Label, Icon, Col } from 'sveltestrap';
 	import { createEventDispatcher } from 'svelte';
 	import { state, DREXItem, activeFile } from './stores';
@@ -90,7 +89,7 @@
 						</FormGroup>
 					</div>
 				</Form>
-				<SecondaryList bind:categoryContent={RMContent} on:getItem on:modifyRailItem on:initializeNewItem on:resetDREXItem on:toggleModal on:execute />
+				<SecondaryList bind:categoryContent={RMContent} categoryIndex={Index} on:getItem on:modifyRailItem on:initializeNewItem on:toggleModal on:execute />
 			</AccordionItem>
 		</div>
 	{/each}

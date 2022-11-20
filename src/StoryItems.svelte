@@ -4,6 +4,7 @@
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { FormGroup, Label, Input, TabContent } from 'sveltestrap';
 	import { MinusCircle, ArrowLeft, ArrowRight } from 'lucide-svelte';
+	export let editItem;
 
 	let dispatch = createEventDispatcher();
 
@@ -21,19 +22,19 @@
 		});
 	}
 
-	$: if (!$DREXItem.content.images) {
-		$DREXItem.content.images = [];
+	$: if (!editItem.content.images) {
+		editItem.content.images = [];
 	}
 </script>
 
-{#if Object.keys($DREXItem).length != 0}
+{#if Object.keys(editItem).length != 0}
 	<FormGroup>
 		<Label for="story-title">Story title</Label>
-		<Input id="story-title" type="text" bind:value={$DREXItem.content.title} />
+		<Input id="story-title" type="text" bind:value={editItem.content.title} />
 	</FormGroup>
 	<FormGroup>
 		<Label for="story-body">Story body</Label>
-		<Input id="story-body" type="textarea" rows="10" bind:value={$DREXItem.content.body} />
+		<Input id="story-body" type="textarea" rows="10" bind:value={editItem.content.body} />
 	</FormGroup>
 	<div
 		class="hero-image"
@@ -42,28 +43,28 @@
 			dispatchSend('setChanged', { scope: 'item' });
 		}}
 	>
-		{#if $DREXItem.content.heroImage}
+		{#if editItem.content.heroImage}
 			<p class="image-label">Story hero image:</p>
-			<img src={MEDIAPATH + 'images/' + $DREXItem.content.heroImage} alt={$DREXItem.content.heroImage} class="editor-hero-item" />
+			<img src={MEDIAPATH + 'images/' + editItem.content.heroImage} alt={editItem.content.heroImage} class="editor-hero-item" />
 		{/if}
 		<p class="filelink">
-			{#if $DREXItem.content.heroImage}
-				{$DREXItem.content.heroImage}
+			{#if editItem.content.heroImage}
+				{editItem.content.heroImage}
 			{:else}
 				Add hero image
 			{/if}
 		</p>
 	</div>
 	<p class="top-spacer image-label">Story images:</p>
-	<div class="image-container">
-		{#if $DREXItem.content.images}
-			{#each $DREXItem.content.images as Image (Image)}
-				<div class="grid-container-item flex-col items-center">
-					<img src={MEDIAPATH + 'images/' + Image.full} class="storyThumbnail self-center" alt={Image.full} />
+	<div class="image-container mb-4">
+		{#if editItem.content.images}
+			{#each editItem.content.images as Image, Index}
+				<div class="grid-container-item shado flex-col">
+					<img src={MEDIAPATH + 'images/' + Image.full} class="object-contain m-auto" alt={Image.full} />
 					<p
 						class="filelink"
 						on:click={() => {
-							dispatchSend('toggleModal', { modal: 'file', options: { type: 'images', role: 'images', index: $DREXItem.content.images.indexOf(Image) } });
+							dispatchSend('toggleModal', { modal: 'file', options: { type: 'images', role: 'images', index: editItem.content.images.indexOf(Image) } });
 						}}
 					>
 						{Image.full}
@@ -72,10 +73,10 @@
 					<div class="grid-container-item-controls">
 						<div />
 
-						{#if $DREXItem.content.images.indexOf(Image) != 0}
+						{#if Index != 0}
 							<div
 								on:click={() => {
-									dispatchSend('modifyImageArray', { item: $DREXItem, image: Image, action: 'moveup' });
+									dispatchSend('modifyImageArray', { item: editItem, image: Image, action: 'moveup' });
 								}}
 							>
 								<ArrowLeft />
@@ -83,10 +84,10 @@
 						{:else}
 							<div class="blank-icon" />
 						{/if}
-						{#if $DREXItem.content.images.indexOf(Image) != $DREXItem.content.images.length - 1}
+						{#if Index != editItem.content.images.length - 1}
 							<div
 								on:click={() => {
-									dispatchSend('modifyImageArray', { item: $DREXItem, image: Image, action: 'movedown' });
+									dispatchSend('modifyImageArray', { item: editItem, image: Image, action: 'movedown' });
 								}}
 							>
 								<ArrowRight />
@@ -97,7 +98,7 @@
 						<div />
 						<div
 							on:click={() => {
-								dispatchSend('modifyImageArray', { item: $DREXItem, image: Image, action: 'remove' });
+								dispatchSend('modifyImageArray', { item: editItem, image: Image, action: 'remove' });
 							}}
 						>
 							<MinusCircle color="red" />
@@ -106,36 +107,38 @@
 				</div>
 			{/each}
 		{/if}
+		<p
+			class="filelink"
+			on:click={() => {
+				dispatchSend('toggleModal', { modal: 'file', options: { type: 'images', role: 'images', index: editItem.content.images.length } });
+			}}
+		>
+			Add image
+		</p>
 	</div>
-	<p
-		class="filelink"
-		on:click={() => {
-			dispatchSend('toggleModal', { modal: 'file', options: { type: 'images', role: 'images', index: $DREXItem.content.images.length } });
-		}}
-	>
-		Add image
-	</p>
-	<audio id="audio" controls>
-		{#if $DREXItem.content.inlineAudioClip}
-			<source src={MEDIAPATH + 'audio/' + $DREXItem.content.inlineAudioClip.source} />
+	<div class="mb-4">
+		<audio id="audio" controls class="mb-2">
+			{#if editItem.content.inlineAudioClip}
+				<source src={MEDIAPATH + 'audio/' + editItem.content.inlineAudioClip.source} />
+			{/if}
+			<track kind="captions" />
+		</audio>
+		{#if editItem.content.inlineAudioClip}
+			<Input type="text" bind:value={editItem.content.inlineAudioClip.caption} />
 		{/if}
-		<track kind="captions" />
-	</audio>
-	{#if $DREXItem.content.inlineAudioClip}
-		<Input type="text" bind:value={$DREXItem.content.inlineAudioClip.caption} />
-	{/if}
-	<p
-		class="filelink"
-		on:click={() => {
-			dispatchSend('toggleModal', { modal: 'file', options: { type: 'audio', role: 'embeddedAudioClip' } });
-		}}
-	>
-		{#if $DREXItem.content.inlineAudioClip}
-			{$DREXItem.content.inlineAudioClip.source}
-		{:else}
-			Add embedded audio clip
-		{/if}
-	</p>
+		<p
+			class="filelink"
+			on:click={() => {
+				dispatchSend('toggleModal', { modal: 'file', options: { type: 'audio', role: 'embeddedAudioClip' } });
+			}}
+		>
+			{#if editItem.content.inlineAudioClip}
+				{editItem.content.inlineAudioClip.source}
+			{:else}
+				Add embedded audio clip
+			{/if}
+		</p>
+	</div>
 {/if}
 
 <style>
@@ -156,19 +159,13 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 10px;
-		margin-bottom: 10px;
 	}
 	.image-container img {
 		height: 200px;
 		max-width: 200px;
 	}
-	.storyThumbnail {
-		object-fit: contain;
-	}
 	.grid-container-item {
 		border: 1px black solid;
-		width: 100%;
-		text-align: center;
 		padding: 10px;
 	}
 	.grid-container-item-controls {

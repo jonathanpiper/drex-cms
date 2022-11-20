@@ -4,6 +4,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import { FormGroup, Label, Input, TabContent } from 'sveltestrap';
 	import { MinusCircle, ArrowLeft, ArrowRight } from 'lucide-svelte';
+	export let editItem;
 
 	let dispatch = createEventDispatcher();
 
@@ -15,42 +16,42 @@
 	}
 </script>
 
-{#if Object.keys($DREXItem).length != 0}
+{#if Object.keys(editItem).length != 0}
 	<FormGroup>
 		<Label for="story-title">Maker</Label>
-		<Input id="story-title" type="text" bind:value={$DREXItem.content.maker} />
+		<Input id="story-title" type="text" bind:value={editItem.content.maker} />
 	</FormGroup>
 	<FormGroup>
 		<Label for="story-title">Maker</Label>
-		<Input id="story-title" type="text" bind:value={$DREXItem.content.title} />
+		<Input id="story-title" type="text" bind:value={editItem.content.title} />
 	</FormGroup>
 	<FormGroup>
 		<Label for="story-title">Maker</Label>
-		<Input id="story-title" type="text" bind:value={$DREXItem.content.date} />
+		<Input id="story-title" type="text" bind:value={editItem.content.date} />
 	</FormGroup>
 	<FormGroup>
 		<Label for="story-title">Description</Label>
-		<Input id="story-title" type="textarea" rows="5" bind:value={$DREXItem.content.body} />
+		<Input id="story-title" type="textarea" rows="5" bind:value={editItem.content.body} />
 	</FormGroup>
 	<FormGroup>
 		<Label for="story-title">Credit line</Label>
-		<Input id="story-title" type="text" bind:value={$DREXItem.content.credit} />
+		<Input id="story-title" type="text" bind:value={editItem.content.credit} />
 	</FormGroup>
 	<FormGroup>
 		<Label for="story-title">Catalogue number</Label>
-		<Input id="story-title" type="text" bind:value={$DREXItem.content.objectID} />
+		<Input id="story-title" type="text" bind:value={editItem.content.objectID} />
 	</FormGroup>
 	<p class="font-bold clear-left inline">Note:</p>
 	<p class="inline">Image files must be named cataloguenumber_view.jpg, e.g. "2022.1.1_Front.jpg," or they will not appear.</p>
 	<div class="image-container mb-2">
-		{#if $DREXItem.content.images}
-			{#each $DREXItem.content.images as Image (Image)}
-				<div class="grid-container-item flex-col items-center">
-					<img src={MEDIAPATH + 'objects/' + $DREXItem.content.objectID + '_' + Image.name + '.jpg'} class="h-48 object-contain" alt={Image.full} />
+		{#if editItem.content.images}
+			{#each editItem.content.images as Image, Index}
+				<div class="grid-container-item flex-col">
+					<img src={MEDIAPATH + 'objects/' + editItem.content.objectID + '_' + Image.name + '.jpg'} class="h-48 object-contain m-auto" alt={Image.full} />
 					<p
 						class="filelink"
 						on:click={() => {
-							dispatchSend('toggleModal', { modal: 'file', options: { type: 'images', role: 'images', index: $DREXItem.content.images.indexOf(Image) } });
+							dispatchSend('toggleModal', { modal: 'file', options: { type: 'images', role: 'images', index: editItem.content.images.indexOf(Image) } });
 						}}
 					>
 						{Image.name}
@@ -58,10 +59,10 @@
 					<div class="grid-container-item-controls">
 						<div />
 
-						{#if $DREXItem.content.images.indexOf(Image) != 0}
+						{#if editItem.content.images.indexOf(Image) != 0}
 							<div
 								on:click={() => {
-									dispatchSend('modifyImageArray', { item: $DREXItem, image: Image, action: 'moveup' });
+									dispatchSend('modifyImageArray', { item: editItem, image: Image, action: 'moveup' });
 								}}
 							>
 								<ArrowLeft />
@@ -69,10 +70,10 @@
 						{:else}
 							<div class="blank-icon" />
 						{/if}
-						{#if $DREXItem.content.images.indexOf(Image) != $DREXItem.content.images.length - 1}
+						{#if editItem.content.images.indexOf(Image) != editItem.content.images.length - 1}
 							<div
 								on:click={() => {
-									dispatchSend('modifyImageArray', { item: $DREXItem, image: Image, action: 'movedown' });
+									dispatchSend('modifyImageArray', { item: editItem, image: Image, action: 'movedown' });
 								}}
 							>
 								<ArrowRight />
@@ -83,7 +84,7 @@
 						<div />
 						<div
 							on:click={() => {
-								dispatchSend('modifyImageArray', { item: $DREXItem, image: Image, action: 'remove' });
+								dispatchSend('modifyImageArray', { item: editItem, image: Image, action: 'remove' });
 							}}
 						>
 							<MinusCircle color="red" />
@@ -97,7 +98,7 @@
 		<p
 			class="filelink"
 			on:click={() => {
-				dispatchSend('toggleModal', { modal: 'file', options: { type: 'objects', role: 'images', index: $DREXItem.content.images.length } });
+				dispatchSend('toggleModal', { modal: 'file', options: { type: 'objects', role: 'images', index: editItem.content.images.length } });
 			}}
 		>
 			Add image

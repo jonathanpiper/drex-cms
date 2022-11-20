@@ -6,7 +6,7 @@
 	import { MEDIAPATH, DEFAULTS } from './config';
 	import { arrayMoveMutable } from 'array-move';
 	import { Input, Card, CardBody, CardFooter, CardHeader, CardTitle } from 'sveltestrap';
-
+	export let categoryIndex;
 	export let categoryContent;
 
 	const dispatch = createEventDispatcher();
@@ -25,7 +25,7 @@
 	{/if}
 	{#if categoryContent.contentType != 'media'}
 		<ol>
-			{#each categoryContent.content as Item (Item)}
+			{#each categoryContent.content as Item, Index}
 				<li>
 					<div class="item-row">
 						<p
@@ -40,8 +40,7 @@
 							{#if categoryContent.content.indexOf(Item) != 0}
 								<div
 									on:click={() => {
-										categoryContent;
-										dispatchSend('modifyRailItem', { action: 'moveUp', item: Item, type: categoryContent.contentType, categoryTitle: categoryContent.title });
+										dispatchSend('modifyRailItem', { action: 'moveUp', itemIndex: Index, categoryIndex: categoryIndex });
 									}}
 								>
 									<ArrowUp />
@@ -52,7 +51,7 @@
 							{#if categoryContent.content.indexOf(Item) != categoryContent.content.length - 1}
 								<div
 									on:click={() => {
-										dispatchSend('modifyRailItem', { action: 'moveDown', item: Item, type: categoryContent.contentType, categoryTitle: categoryContent.title });
+										dispatchSend('modifyRailItem', { action: 'moveDown', itemIndex: Index, categoryIndex: categoryIndex });
 									}}
 								>
 									<ArrowDown />
@@ -63,7 +62,7 @@
 							<div
 								class="delete-button"
 								on:click={() => {
-									dispatchSend('modifyRailItem', { action: 'remove', item: Item, type: categoryContent.contentType, categoryTitle: categoryContent.title });
+									dispatchSend('modifyRailItem', { action: 'remove', item: Item, itemIndex: Index, categoryIndex: categoryIndex });
 								}}
 							>
 								<MinusCircle color="red" />
@@ -96,7 +95,7 @@
 						{#if Index != 0}
 							<div
 								on:click={() => {
-									dispatchSend('modifyRailItem', { action: 'moveUp', item: mediaType.contentType, type: categoryContent.contentType, categoryTitle: categoryContent.title });
+									dispatchSend('modifyRailItem', { action: 'moveUp', itemIndex: Index, categoryIndex: categoryIndex });
 								}}
 							>
 								<ArrowUp />
@@ -108,7 +107,7 @@
 						{#if Index != categoryContent.content.length - 1}
 							<div
 								on:click={() => {
-									dispatchSend('modifyRailItem', { action: 'moveDown', item: mediaType.contentType, type: categoryContent.contentType, categoryTitle: categoryContent.title });
+									dispatchSend('modifyRailItem', { action: 'moveDown', itemIndex: Index, categoryIndex: categoryIndex });
 								}}
 							>
 								<ArrowDown />
@@ -137,7 +136,7 @@
 					<Input type="textarea" bind:value={mediaType.summary} placeholder="Summary (used for G2 Musical Moments)" />
 				{/if}
 				<ol class="mt-2">
-					{#each mediaType.content as Item (Item)}
+					{#each mediaType.content as Item, MediaItemIndex}
 						<li>
 							<div class="item-row">
 								<p
@@ -146,13 +145,13 @@
 										dispatchSend('getItem', { item: Item, contentType: mediaType.contentType });
 									}}
 								>
-									{Item.substring(0, 20)}{Item.length > 20 ? '...' : ''}
+									{Item.substring(0, 20)}{Item.length > 18 ? '...' : ''}
 								</p>
 								<div class="item-controls">
-									{#if mediaType.content.indexOf(Item) != 0}
+									{#if MediaItemIndex != 0}
 										<div
 											on:click={() => {
-												dispatchSend('modifyRailItem', { action: 'moveUp', item: Item, type: mediaType.contentType, categoryTitle: mediaType.title });
+												dispatchSend('modifyRailItem', { action: 'moveUp', itemIndex: MediaItemIndex, categoryIndex: categoryIndex, mediaCategoryIndex: Index });
 											}}
 										>
 											<ArrowUp />
@@ -160,10 +159,10 @@
 									{:else}
 										<div class="blank-icon" />
 									{/if}
-									{#if mediaType.content.indexOf(Item) != mediaType.content.length - 1}
+									{#if MediaItemIndex != mediaType.content.length - 1}
 										<div
 											on:click={() => {
-												dispatchSend('modifyRailItem', { action: 'moveDown', item: Item, type: mediaType.contentType, categoryTitle: mediaType.title });
+												dispatchSend('modifyRailItem', { action: 'moveDown', itemIndex: MediaItemIndex, categoryIndex: categoryIndex, mediaCategoryIndex: Index });
 											}}
 										>
 											<ArrowDown />
@@ -174,7 +173,7 @@
 									<div
 										class="delete-button"
 										on:click={() => {
-											dispatchSend('modifyRailItem', { action: 'remove', item: Item, type: mediaType.contentType, categoryTitle: mediaType.title });
+											dispatchSend('modifyRailItem', { action: 'remove', item: Item, itemIndex: MediaItemIndex, categoryIndex: categoryIndex, mediaCategoryIndex: Index });
 										}}
 									>
 										<MinusCircle color="red" />
