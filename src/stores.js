@@ -51,44 +51,37 @@ export var listItemsOfType = writable([]);
 
 export var RailMap = writable({});
 
-export var typePlurals = writable({
-
-})
-
-export var mediaTypes = writable([
-	'musicalmoment',
-	'factoryfootage',
-	'oralhistory',
-	'custom'
-]);
-
-export var prettyMediaTypes = writable({
-	musicalmoments: 'Musical Moments',
-	factoryfootage: 'Factory Footage',
-	oralhistories: 'Oral Histories',
-	custom: 'custom'
-});
-
-export var defaults = writable({
-	categoryIcons: [
-		'stories',
-		'artifacts',
-		'watch+listen'
-	], emptyContentType: {
-		title: 'New content type',
-		contentType: 'stories',
-		content: [],
-	}, typeEditingDisabled: {
-		stories: '',
-		media: 'true',
-		artifacts: 'true',
-	}, typePlurals: {
-		story: 'stories',
-		artifact: 'artifacts',
-		object: 'objects',
-		musicalmoment: 'musicalmoments',
-		factoryfootage: 'factoryfootage',
-		oralhistory: 'oralhistories',
-		custom: 'custom'
-	}
-})
+// export var defaults = writable({
+// 	categoryIcons: [
+// 		'stories',
+// 		'artifacts',
+// 		'watch+listen'
+// 	], emptyContentType: {
+// 		title: 'New content type',
+// 		contentType: 'stories',
+// 		content: [],
+// 	}, typeEditingDisabled: {
+// 		stories: '',
+// 		media: 'true',
+// 		artifacts: 'true',
+// 	}, mediaTypes: [
+// 		'musicalmoment',
+// 		'factoryfootage',
+// 		'oralhistory',
+// 		'custom'
+// 	],
+// 	typePlurals: {
+// 		story: 'stories',
+// 		artifact: 'artifacts',
+// 		object: 'objects',
+// 		musicalmoment: 'musicalmoments',
+// 		factoryfootage: 'factoryfootage',
+// 		oralhistory: 'oralhistories',
+// 		custom: 'custom'
+// 	}, prettyMediaTypes: {
+// 		musicalmoments: 'Musical Moments',
+// 		factoryfootage: 'Factory Footage',
+// 		oralhistories: 'Oral Histories',
+// 		custom: 'custom'
+// 	}
+// })

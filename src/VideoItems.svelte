@@ -1,5 +1,5 @@
 <script>
-	import { DREXItem, activeMediaCategory, typePlurals, prettyMediaTypes } from './stores';
+	import { DREXItem } from './stores';
 	import { MEDIAPATH } from './config';
 	import { Input } from 'sveltestrap';
 	import { createEventDispatcher } from 'svelte';
@@ -91,7 +91,6 @@
 			class="filelink"
 			on:click={() => {
 				dispatchSend('toggleModal', { modal: 'file', options: { type: 'images', role: 'thumbnail' } });
-				//toggleModal('file', { type: 'images', role: 'thumbnail' });
 			}}
 		>
 			{#if $DREXItem.content.thumbnail}

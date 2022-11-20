@@ -1,5 +1,5 @@
 import { arrayMoveMutable } from 'array-move';
-// import { drexPath, mediaPath } from './config';
+import { DREXPATH, MEDIAPATH } from './config';
 
 export function titleCase(str) {
     return str[0].toUpperCase() + str.slice(1);
@@ -70,4 +70,27 @@ export function modifyImageArray(item, image, action) {
         }
     }
     return item;
+}
+
+export function setObjectImageFile(imageArray = [], imageFile, imageIndex) {
+    if (!imageArray[imageIndex]) {
+        imageArray = [...imageArray, {}];
+    }
+    const image = new Image();
+    image.src = MEDIAPATH + 'objects/' + imageFile;
+    imageArray[imageIndex].name = imageFile.slice(0, -4).split('_')[1];
+    imageArray[imageIndex].width = image.width;
+    imageArray[imageIndex].height = image.height;
+    imageArray[imageIndex].altsizes = ['_half', '_quarter', '_threequarter'];
+    return imageArray;
+}
+
+export function setItemImageFile(imageArray = [], imageFile, imageIndex) {
+    if (!imageArray[imageIndex]) {
+        imageArray = [...imageArray, {}];
+    }
+    imageArray[imageIndex].full = imageFile;
+    imageArray[imageIndex].thumbnail = imageFile.slice(0, -4) + '-THUMB' + imageFile.slice(-4);
+    imageArray[imageIndex].caption = '';
+    return imageArray;
 }

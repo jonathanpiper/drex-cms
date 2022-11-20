@@ -26,7 +26,7 @@
 		TabContent,
 		TabPane,
 	} from 'sveltestrap';
-	import { titleCase, getKeyByValue, gotoRail, modifyDwellImageArray, moveRailMapType, removeRailMapType, expandRail, modifyImageArray } from './functions';
+	import { titleCase, getKeyByValue, gotoRail, modifyDwellImageArray, moveRailMapType, removeRailMapType, expandRail, modifyImageArray, setObjectImageFile, setItemImageFile } from './functions';
 	import Modals from './Modals.svelte';
 	import PrimaryList from './PrimaryList.svelte';
 	import SecondaryList from './SecondaryList.svelte';
@@ -34,8 +34,8 @@
 	import RailsList from './RailsList.svelte';
 	import HomeScreen from './HomeScreen.svelte';
 	import { onMount, afterUpdate } from 'svelte';
-	import { RailMap, state, DREXItem, activeMediaCategory, fileList, activeFile, newItem, listItemsOfType, mediaTypes, defaults, backupItem } from './stores';
-	import { DREXPATH, MEDIAPATH } from './config';
+	import { RailMap, state, DREXItem, activeMediaCategory, fileList, activeFile, newItem, listItemsOfType, backupItem } from './stores';
+	import { DREXPATH, MEDIAPATH, DEFAULTS } from './config';
 	import { PlusCircle, MinusCircle, ArrowDown, ArrowUp, ArrowLeft, ArrowRight, RefreshCw, Save, Send, XCircle } from 'lucide-svelte';
 	import { arrayMoveMutable } from 'array-move';
 	import ItemEditor from './ItemEditor.svelte';
@@ -74,7 +74,6 @@
 	//Functions for handling modal windows.
 	const toggleObjectModal = () => ($state.objectModalOpen = !$state.objectModalOpen);
 	const toggleFileBrowserModal = () => ($state.fileBrowserModalOpen = !$state.fileBrowserModalOpen);
-	// const toggleEditorModal = () => ({)$state.editorModalOpen = !$state.editorModalOpen);
 
 	async function toggleModal(modal, options) {
 		if (modal == 'object') {
@@ -97,26 +96,6 @@
 	}
 
 	//Functions for handling dispatched events from components.
-	function dispatchToggleModal(event) {
-		var modal = event.detail.modal;
-		var options = {};
-		if (event.detail.options) {
-			options = JSON.parse(JSON.stringify(event.detail.options));
-		}
-		toggleModal(modal, options);
-	}
-
-	async function dispatchGetFileList(event) {
-		var fileType = event.detail.fileType;
-		$fileList = await getFileList($activeFile.type);
-	}
-
-	async function dispatchGetItem(event) {
-		console.log(event.detail);
-		const type = event.detail.type;
-		const item = event.detail.item;
-		getItem(item, type);
-	}
 
 	function modifyRailItem(options) {
 		console.log(options);
@@ -255,14 +234,14 @@
 
 	async function initializeNewItem(typePlural, categoryTitle) {
 		resetNewItem();
-		$newItem.type = getKeyByValue($defaults.typePlurals, typePlural);
+		$newItem.type = getKeyByValue(DEFAULTS.typePlurals, typePlural);
 		$state.activeCategory = categoryTitle;
 		$listItemsOfType = await getAllItemsOfType($newItem.type);
 		toggleModal('object');
 	}
 
 	async function addExistingItem(item, type) {
-		if ($mediaTypes.indexOf(type) == -1) {
+		if (DEFAULTS.mediaTypes.indexOf(type) == -1) {
 			const typeIndex = $RailMap.content.findIndex((t) => t.title == $state.activeCategory);
 			const itemIndex = $RailMap.content[typeIndex].content.indexOf(item.identifier);
 			if (itemIndex == -1) {
@@ -322,11 +301,11 @@
 		} else {
 			const createItemResult = await createItem(item);
 			var typeIndex;
-			if ($mediaTypes.indexOf(item.type) == -1) {
+			if (DEFAULTS.mediaTypes.indexOf(item.type) == -1) {
 				typeIndex = $RailMap.content.findIndex((t) => t.title == $state.activeCategory);
 				$RailMap.content[typeIndex].content = [...$RailMap.content[typeIndex].content, item.identifier];
 			} else {
-				typeIndex = $RailMap.content[$state.mediaIndex].content.findIndex((t) => t.contentType == $defaults.typePlurals[item.type]);
+				typeIndex = $RailMap.content[$state.mediaIndex].content.findIndex((t) => t.contentType == DEFAULTS.typePlurals[item.type]);
 				$RailMap.content[$state.mediaIndex].content[typeIndex].content = [...$RailMap.content[$state.mediaIndex].content[typeIndex].content, item.identifier];
 			}
 			const saveRailResult = await saveRail($RailMap);
@@ -342,58 +321,12 @@
 		return promise;
 	}
 
-	function setObjectImageFile(imageArray = [], imageFile, imageIndex) {
-		if (!imageArray[imageIndex]) {
-			imageArray = [...imageArray, {}];
-		}
-		const image = new Image();
-		image.src = MEDIAPATH + 'objects/' + imageFile;
-		imageArray[imageIndex].name = imageFile.slice(0, -4).split('_')[1];
-		imageArray[imageIndex].width = image.width;
-		imageArray[imageIndex].height = image.height;
-		imageArray[imageIndex].altsizes = ['_half', '_quarter', '_threequarter'];
-		return imageArray;
-	}
-
-	function setItemImageFile(imageArray = [], imageFile, imageIndex) {
-		console.log(imageArray, imageIndex);
-		if (!imageArray[imageIndex]) {
-			imageArray = [...imageArray, {}];
-		}
-		imageArray[imageIndex].full = imageFile;
-		imageArray[imageIndex].thumbnail = imageFile.slice(0, -4) + '-THUMB' + imageFile.slice(-4);
-		imageArray[imageIndex].caption = '';
-		return imageArray;
-	}
-
 	function setFile(file, fileRole, fileType, fileIndex, categoryIndex) {
 		if (fileRole == 'images') {
 			if (fileType == 'objects') {
 				$DREXItem.content.images = setObjectImageFile($DREXItem.content.images, file, fileIndex);
-				// if (!$DREXItem.content.images) {
-				// 	$DREXItem.content.images = [];
-				// }
-				// if (!$DREXItem.content.images[fileIndex]) {
-				// 	$DREXItem.content.images = [...$DREXItem.content.images, {}];
-				// }
-				// const image = new Image();
-				// image.src = MEDIAPATH + 'objects/' + file;
-				// $DREXItem.content.images[fileIndex].name = file.slice(0, -4).split('_')[1];
-				// $DREXItem.content.images[fileIndex].width = image.width;
-				// $DREXItem.content.images[fileIndex].height = image.height;
-				// $DREXItem.content.images[fileIndex].altsizes = ['_half', '_quarter', '_threequarter'];
-				// console.log($DREXItem.content.images[fileIndex]);
 			} else {
 				$DREXItem.content.images = setItemImageFile($DREXItem.content.images, file, fileIndex);
-				// if (!$DREXItem.content.images) {
-				// 	$DREXItem.content.images = [];
-				// }
-				// if (!$DREXItem.content.images[fileIndex]) {
-				// 	$DREXItem.content.images = [...$DREXItem.content.images, {}];
-				// }
-				// $DREXItem.content.images[fileIndex].full = file;
-				// $DREXItem.content.images[fileIndex].thumbnail = file.slice(0, -4) + '-THUMB' + file.slice(-4);
-				// $DREXItem.content.images[fileIndex].caption = '';
 			}
 		} else if (fileRole == 'mediaTypeHeroImage') {
 			$RailMap.content[$state.mediaIndex].content[$activeFile.index].heroImage = file;
@@ -413,7 +346,7 @@
 		const typeIndex = map.content.findIndex((t) => t.title == categoryTitle);
 		console.log(categoryTitle, typeIndex);
 		if (confirmation) {
-			if ($mediaTypes.indexOf(getKeyByValue($defaults.typePlurals, type)) == -1) {
+			if (DEFAULTS.mediaTypes.indexOf(getKeyByValue(DEFAULTS.typePlurals, type)) == -1) {
 				const itemIndex = map.content[typeIndex].content.indexOf(item);
 				map.content[typeIndex].content.splice(itemIndex, 1);
 				map.content = map.content;
@@ -439,7 +372,7 @@
 		const typeIndex = map.content.findIndex((t) => t.title == categoryTitle);
 		console.log(typeIndex);
 		var itemIndex;
-		if ($mediaTypes.indexOf(getKeyByValue($defaults.typePlurals, type)) == -1) {
+		if (DEFAULTS.mediaTypes.indexOf(getKeyByValue(DEFAULTS.typePlurals, type)) == -1) {
 			if (type == 'media') {
 				itemIndex = map.content[typeIndex].content.findIndex((t) => t.contentType == item);
 			} else {
@@ -509,7 +442,7 @@
 				resetDREXItem();
 				return;
 			case 'expandRail':
-				$RailMap = expandRail($RailMap, $defaults.emptyContentType);
+				$RailMap = expandRail($RailMap, DEFAULTS.emptyContentType);
 				break;
 			case 'initializeNewItem':
 				resetNewItem();
@@ -517,7 +450,7 @@
 				if (p.contentType == 'custom') {
 					$newItem.type = 'custom';
 				} else {
-					$newItem.type = getKeyByValue($defaults.typePlurals, p.contentType.toLowerCase());
+					$newItem.type = getKeyByValue(DEFAULTS.typePlurals, p.contentType.toLowerCase());
 				}
 				$state.activeCategory = p.categoryTitle;
 				console.log($state.activeCategory, $newItem.type);
@@ -571,10 +504,9 @@
 				<div class="mt-4 w-full grid grid-cols-3 gap-4">
 					<div>
 						<PrimaryList
-							on:getItem={dispatchGetItem}
+							bind:railContent={$RailMap.content}
 							on:initializeNewItem={dispatchInitializeNewItem}
 							on:resetDREXItem={resetDREXItem}
-							on:toggleModal={dispatchToggleModal}
 							on:execute={dispatchManager}
 						/>
 					</div>

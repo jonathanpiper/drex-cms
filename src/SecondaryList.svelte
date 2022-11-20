@@ -2,13 +2,12 @@
 	import { Row, Col, Button, Badge } from 'sveltestrap';
 	import { MinusCircle, ArrowUp, ArrowDown, PlusCircle } from 'lucide-svelte';
 	import { createEventDispatcher } from 'svelte';
-	import { RailMap, state, typePlurals, mediaTypes, DREXItem, prettyMediaTypes } from './stores';
-	import { MEDIAPATH } from './config';
+	import { RailMap, state, DREXItem } from './stores';
+	import { MEDIAPATH, DEFAULTS } from './config';
 	import { arrayMoveMutable } from 'array-move';
 	import { Input, Card, CardBody, CardFooter, CardHeader, CardTitle } from 'sveltestrap';
 
-	export let contentType;
-	var RMContent;
+	export let categoryContent;
 
 	const dispatch = createEventDispatcher();
 
@@ -18,33 +17,31 @@
 			p: p,
 		});
 	}
-
-	$: RMContent = $RailMap.content[$RailMap.content.findIndex((t) => t.title == contentType)];
 </script>
 
-{#if RMContent}
-	{#if RMContent.content.length == 0}
+{#if categoryContent}
+	{#if categoryContent.content.length == 0}
 		<div><p>No items yet.</p></div>
 	{/if}
-	{#if RMContent.contentType != 'media'}
+	{#if categoryContent.contentType != 'media'}
 		<ol>
-			{#each RMContent.content as Item (Item)}
+			{#each categoryContent.content as Item (Item)}
 				<li>
 					<div class="item-row">
 						<p
 							class="list"
 							on:click={() => {
-								dispatchSend('getItem', { item: Item, contentType: RMContent.contentType });
+								dispatchSend('getItem', { item: Item, contentType: categoryContent.contentType });
 							}}
 						>
 							{Item}
 						</p>
 						<div class="item-controls">
-							{#if RMContent.content.indexOf(Item) != 0}
+							{#if categoryContent.content.indexOf(Item) != 0}
 								<div
 									on:click={() => {
-										RMContent;
-										dispatchSend('modifyRailItem', { action: 'moveUp', item: Item, type: RMContent.contentType, categoryTitle: RMContent.title });
+										categoryContent;
+										dispatchSend('modifyRailItem', { action: 'moveUp', item: Item, type: categoryContent.contentType, categoryTitle: categoryContent.title });
 									}}
 								>
 									<ArrowUp />
@@ -52,10 +49,10 @@
 							{:else}
 								<div class="blank-icon" />
 							{/if}
-							{#if RMContent.content.indexOf(Item) != RMContent.content.length - 1}
+							{#if categoryContent.content.indexOf(Item) != categoryContent.content.length - 1}
 								<div
 									on:click={() => {
-										dispatchSend('modifyRailItem', { action: 'moveDown', item: Item, type: RMContent.contentType, categoryTitle: RMContent.title });
+										dispatchSend('modifyRailItem', { action: 'moveDown', item: Item, type: categoryContent.contentType, categoryTitle: categoryContent.title });
 									}}
 								>
 									<ArrowDown />
@@ -66,7 +63,7 @@
 							<div
 								class="delete-button"
 								on:click={() => {
-									dispatchSend('modifyRailItem', { action: 'remove', item: Item, type: RMContent.contentType, categoryTitle: RMContent.title });
+									dispatchSend('modifyRailItem', { action: 'remove', item: Item, type: categoryContent.contentType, categoryTitle: categoryContent.title });
 								}}
 							>
 								<MinusCircle color="red" />
@@ -78,7 +75,7 @@
 			<div class="add-button clickable">
 				<div
 					on:click={() => {
-						dispatchSend('initializeNewItem', { contentType: RMContent.contentType, categoryTitle: RMContent.title });
+						dispatchSend('initializeNewItem', { contentType: categoryContent.contentType, categoryTitle: categoryContent.title });
 					}}
 				>
 					<PlusCircle color="green" class="inline" />
@@ -87,19 +84,19 @@
 			</div>
 		</ol>
 	{:else}
-		{#each RMContent.content as mediaType, Index}
+		{#each categoryContent.content as mediaType, Index}
 			<div class="border rounded-md p-1 mb-1">
 				<div class="item-row">
 					{#if mediaType.contentType == 'custom'}
 						<Input type="text" bind:value={mediaType.title} class="w-full" />
 					{:else}
-						<p>{mediaType.title ? mediaType.title : $prettyMediaTypes[mediaType.contentType]}</p>
+						<p>{mediaType.title ? mediaType.title : DEFAULTS.prettyMediaTypes[mediaType.contentType]}</p>
 					{/if}
 					<div class="item-controls">
 						{#if Index != 0}
 							<div
 								on:click={() => {
-									dispatchSend('modifyRailItem', { action: 'moveUp', item: mediaType.contentType, type: RMContent.contentType, categoryTitle: RMContent.title });
+									dispatchSend('modifyRailItem', { action: 'moveUp', item: mediaType.contentType, type: categoryContent.contentType, categoryTitle: categoryContent.title });
 								}}
 							>
 								<ArrowUp />
@@ -108,10 +105,10 @@
 							<div class="blank-icon" />
 						{/if}
 
-						{#if Index != RMContent.content.length - 1}
+						{#if Index != categoryContent.content.length - 1}
 							<div
 								on:click={() => {
-									dispatchSend('modifyRailItem', { action: 'moveDown', item: mediaType.contentType, type: RMContent.contentType, categoryTitle: RMContent.title });
+									dispatchSend('modifyRailItem', { action: 'moveDown', item: mediaType.contentType, type: categoryContent.contentType, categoryTitle: categoryContent.title });
 								}}
 							>
 								<ArrowDown />

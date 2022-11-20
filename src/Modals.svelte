@@ -1,7 +1,7 @@
 <script>
 	import { Modal, ModalHeader, ModalBody, ModalFooter, Form, FormGroup, FormText, Label, Input, Button, TabContent, Col, Row, Spinner, Icon, Badge } from 'sveltestrap';
-	import { RailMap, state, fileList, activeFile, newItem, listItemsOfType, DREXItem, defaults, mediaTypes } from './stores';
-	import { DREXPATH } from './config';
+	import { RailMap, state, fileList, activeFile, newItem, listItemsOfType, DREXItem } from './stores';
+	import { DREXPATH, DEFAULTS } from './config';
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 
@@ -100,7 +100,7 @@
 									{/if}
 								</div>
 							{/if}
-						{:else if $mediaTypes.indexOf($newItem.type) != -1}
+						{:else if DEFAULTS.mediaTypes.indexOf($newItem.type) != -1}
 							{#if $RailMap.content[$state.railMapMediaIndex].content[$RailMap.content[$state.railMapMediaIndex].content.findIndex((t) => t.title == $state.activeCategory)].content.indexOf(Item.identifier) == -1}
 								<div
 									class="mx-2 my-3 p-2 shadow-sm border rounded cursor-pointer"

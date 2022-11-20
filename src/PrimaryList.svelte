@@ -2,11 +2,12 @@
 	//import { PlusCircle, ArrowDown, ArrowUp, MinusCircle, ArrowRight } from 'lucide-svelte';
 	import { Form, Badge, FormGroup, Row, Input, Button, Accordion, AccordionItem, Label, Icon, Col } from 'sveltestrap';
 	import { createEventDispatcher } from 'svelte';
-	import { RailMap, state, typePlurals, mediaTypes, DREXItem, defaults, activeFile } from './stores';
-	import { MEDIAPATH } from './config';
+	import { state, DREXItem, activeFile } from './stores';
+	import { MEDIAPATH, DEFAULTS } from './config';
 	import { arrayMoveMutable } from 'array-move';
 	import SecondaryList from './SecondaryList.svelte';
-	import ItemEditor from './ItemEditor.svelte';
+	import { MinusCircle, ArrowUp, ArrowDown, PlusCircle } from 'lucide-svelte';
+	export let railContent;
 
 	const dispatch = createEventDispatcher();
 
@@ -19,7 +20,7 @@
 </script>
 
 <Accordion>
-	{#each $RailMap.content as RMContent, Index}
+	{#each railContent as RMContent, Index}
 		<div>
 			<AccordionItem
 				header={RMContent.title}
@@ -27,12 +28,43 @@
 					dispatchSend('confirmMoveAwayFromItem');
 				}}
 			>
+				<div class="category-controls">
+					{#if Index != 0}
+						<div
+							on:click={() => {
+								dispatchSend('moveRailMapType', { direction: 'up', type: RMContent.title });
+							}}
+						>
+							<ArrowUp size="32" />
+						</div>
+					{:else}
+						<ArrowUp size="32" color="#bbb" />
+					{/if}
+					{#if Index != railContent.length - 1}
+						<div
+							on:click={() => {
+								dispatchSend('moveRailMapType', { direction: 'down', type: RMContent.title });
+							}}
+						>
+							<ArrowDown size="32" />
+						</div>
+					{:else}
+						<ArrowDown size="32" color="#bbb" />
+					{/if}
+					<div
+						on:click={() => {
+							dispatchSend('removeRailMapType', { type: RMContent.title });
+						}}
+					>
+						<MinusCircle color="red" size="32" />
+					</div>
+				</div>
 				<Form>
 					<div class="category-properties">
 						<div>
 							<FormGroup>
 								<Label size="sm" for="categoryTitle">Category title</Label>
-								<Input name="categoryTitle" type="text" disabled={$defaults.typeEditingDisabled[RMContent.contentType]} bind:value={RMContent.title} />
+								<Input name="categoryTitle" type="text" disabled={DEFAULTS.typeEditingDisabled[RMContent.contentType]} bind:value={RMContent.title} />
 								<Label size="sm" for="categoryContentType">Category type</Label>
 								<Input name="categoryContentType" type="select" bind:value={RMContent.contentType}>
 									<option>stories</option>
@@ -58,68 +90,26 @@
 						</FormGroup>
 					</div>
 				</Form>
-				<SecondaryList contentType={RMContent.title} on:getItem on:modifyRailItem on:initializeNewItem on:resetDREXItem on:toggleModal on:execute />
-
-				<div class="category-controls">
-					{#if $RailMap.content.indexOf(RMContent) != 0}
-						<Button
-							color="primary"
-							size="sm"
-							on:click={() => {
-								dispatchSend('moveRailMapType', { direction: 'up', type: RMContent.title });
-								//moveRailMapType('up', RMContent.title);
-							}}
-							>Move up
-							<Icon name="arrow-up" />
-						</Button>
-					{:else}
-						<div class="blank-icon" />
-					{/if}
-					{#if $RailMap.content.indexOf(RMContent) != $RailMap.content.length - 1}
-							<Button
-								color="primary"
-								size="sm"
-								on:click={() => {
-									dispatchSend('moveRailMapType', { direction: 'down', type: RMContent.title });
-								}}
-								>Move down
-								<Icon name="arrow-down" />
-							</Button>
-					{:else}
-						<div class="blank-icon" />
-					{/if}
-					<Button
-						color="danger"
-						size="sm"
-						class="delete-button"
-						on:click={() => {
-							dispatchSend('removeRailMapType', { type: RMContent.title });
-						}}
-						>Remove
-						<Icon name="x-circle" />
-					</Button>
-				</div>
+				<SecondaryList bind:categoryContent={RMContent} on:getItem on:modifyRailItem on:initializeNewItem on:resetDREXItem on:toggleModal on:execute />
 			</AccordionItem>
 		</div>
 	{/each}
 </Accordion>
-<Button class="mt-4"
+<Button
+	class="mt-4"
 	on:click={() => {
 		dispatchSend('expandRail');
 	}}>Add new category</Button
 >
 
 <style>
-	.blank-icon {
-		width: 24px;
-	}
 	.category-controls {
 		margin: 10px 8px;
 		width: 100%;
 		display: grid;
-		grid-template-columns: repeat(3, 98px);
+		grid-template-columns: repeat(3, 1fr);
 		column-gap: 6px;
-		justify-content: end;
+		justify-items: center;
 	}
 	.category-properties {
 		display: grid;
