@@ -1,30 +1,23 @@
 <script>
-	import { DREXItem, mediaPath } from './stores';
-	import { createEventDispatcher } from 'svelte';
+	import { DREXItem, state } from './stores';
+	import { MEDIAPATH } from './config';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import { FormGroup, Label, Input, TabContent } from 'sveltestrap';
 	import { MinusCircle, ArrowLeft, ArrowRight } from 'lucide-svelte';
 
 	let dispatch = createEventDispatcher();
 
-	function dispatchFileBrowser(type, role, index = 0) {
-		dispatch('toggleModal', {
-			type: type,
-			role: role,
-			index: index,
-		});
-	}
-
-	function toggleModal(modal, options) {
-		dispatch('toggleModal', {
-			modal: modal,
-			options: options,
-		});
-	}
-
 	function dispatchModifyImageArray(image, action) {
 		dispatch('modifyImageArray', {
 			image: image,
 			action: action,
+		});
+	}
+
+	function dispatchSend(f, p = {}) {
+		dispatch('execute', {
+			f: f,
+			p: p,
 		});
 	}
 
@@ -34,15 +27,24 @@
 </script>
 
 {#if Object.keys($DREXItem).length != 0}
+	<FormGroup>
+		<Label for="story-title">Story title</Label>
+		<Input id="story-title" type="text" bind:value={$DREXItem.content.title} />
+	</FormGroup>
+	<FormGroup>
+		<Label for="story-body">Story body</Label>
+		<Input id="story-body" type="textarea" rows="10" bind:value={$DREXItem.content.body} />
+	</FormGroup>
 	<div
 		class="hero-image"
 		on:click={() => {
-			toggleModal('file', { type: 'images', role: 'heroImage' });
+			dispatchSend('toggleModal', { modal: 'file', options: { type: 'images', role: 'heroImage' } });
+			dispatchSend('setChanged', { scope: 'item' });
 		}}
 	>
 		{#if $DREXItem.content.heroImage}
-			<p>Story hero image:</p>
-			<img src={$mediaPath + 'images/' + $DREXItem.content.heroImage} alt={$DREXItem.content.heroImage} />
+			<p class="image-label">Story hero image:</p>
+			<img src={MEDIAPATH + 'images/' + $DREXItem.content.heroImage} alt={$DREXItem.content.heroImage} class="editor-hero-item" />
 		{/if}
 		<p class="filelink">
 			{#if $DREXItem.content.heroImage}
@@ -52,40 +54,28 @@
 			{/if}
 		</p>
 	</div>
-	<div class="top-spacer" />
-	<FormGroup>
-		<Label for="story-title">Story title</Label>
-		<Input id="story-title" type="text" bsSize="lg" bind:value={$DREXItem.content.title} />
-	</FormGroup>
-	<FormGroup>
-		<Label for="story-body">Story body</Label>
-		<Input id="story-body" type="textarea" rows="10" bind:value={$DREXItem.content.body} />
-	</FormGroup>
-
-	<p class="top-spacer">Story images:</p>
+	<p class="top-spacer image-label">Story images:</p>
 	<div class="image-container">
 		{#if $DREXItem.content.images}
 			{#each $DREXItem.content.images as Image (Image)}
-				<div class="grid-container-item">
-					<img src={$mediaPath + 'images/' + Image.full} class="storyThumbnail" alt={Image.full} />
+				<div class="grid-container-item flex-col items-center">
+					<img src={MEDIAPATH + 'images/' + Image.full} class="storyThumbnail self-center" alt={Image.full} />
 					<p
 						class="filelink"
 						on:click={() => {
-							toggleModal('file', { type: 'images', role: 'images', index: $DREXItem.content.images.indexOf(Image) });
+							dispatchSend('toggleModal', { modal: 'file', options: { type: 'images', role: 'images', index: $DREXItem.content.images.indexOf(Image) } });
 						}}
 					>
 						{Image.full}
 					</p>
-					{#if Image.caption}
-						<Input type="textarea" rows="3" bind:value={Image.caption} />
-					{/if}
+					<Input type="textarea" rows="3" bind:value={Image.caption} placeholder="Caption (leave blank for no caption)" />
 					<div class="grid-container-item-controls">
 						<div />
 
 						{#if $DREXItem.content.images.indexOf(Image) != 0}
 							<div
 								on:click={() => {
-									dispatchModifyImageArray(Image, 'moveup');
+									dispatchSend('modifyImageArray', { item: $DREXItem, image: Image, action: 'moveup' });
 								}}
 							>
 								<ArrowLeft />
@@ -96,7 +86,7 @@
 						{#if $DREXItem.content.images.indexOf(Image) != $DREXItem.content.images.length - 1}
 							<div
 								on:click={() => {
-									dispatchModifyImageArray(Image, 'movedown');
+									dispatchSend('modifyImageArray', { item: $DREXItem, image: Image, action: 'movedown' });
 								}}
 							>
 								<ArrowRight />
@@ -107,7 +97,7 @@
 						<div />
 						<div
 							on:click={() => {
-								dispatchModifyImageArray(Image, 'remove');
+								dispatchSend('modifyImageArray', { item: $DREXItem, image: Image, action: 'remove' });
 							}}
 						>
 							<MinusCircle color="red" />
@@ -120,14 +110,14 @@
 	<p
 		class="filelink"
 		on:click={() => {
-			toggleModal('file', { type: 'images', role: 'images', index: $DREXItem.content.images.length });
+			dispatchSend('toggleModal', { modal: 'file', options: { type: 'images', role: 'images', index: $DREXItem.content.images.length } });
 		}}
 	>
 		Add image
 	</p>
 	<audio id="audio" controls>
 		{#if $DREXItem.content.inlineAudioClip}
-			<source src={$mediaPath + 'audio/' + $DREXItem.content.inlineAudioClip.source} />
+			<source src={MEDIAPATH + 'audio/' + $DREXItem.content.inlineAudioClip.source} />
 		{/if}
 		<track kind="captions" />
 	</audio>
@@ -137,7 +127,7 @@
 	<p
 		class="filelink"
 		on:click={() => {
-			toggleModal('file', { type: 'audio', role: 'embeddedAudioClip' });
+			dispatchSend('toggleModal', { modal: 'file', options: { type: 'audio', role: 'embeddedAudioClip' } });
 		}}
 	>
 		{#if $DREXItem.content.inlineAudioClip}
@@ -149,12 +139,14 @@
 {/if}
 
 <style>
+	.image-label {
+		margin-bottom: 4px;
+	}
 	.blank-icon {
 		width: 24px;
 	}
 	.hero-image {
 		width: 100%;
-		height: 100%;
 	}
 	.top-spacer {
 		margin-top: 20px;
@@ -182,5 +174,8 @@
 	.grid-container-item-controls {
 		display: grid;
 		grid-template-columns: 4fr 1fr 1fr 3fr 1fr;
+	}
+	.editor-hero-item {
+		max-width: 100%;
 	}
 </style>

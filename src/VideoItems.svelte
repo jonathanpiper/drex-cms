@@ -1,5 +1,6 @@
-<script lang="ts">
-	import { DREXItem, activeMediaCategory, mediaPath, typePlurals, prettyMediaTypes } from './stores';
+<script>
+	import { DREXItem, activeMediaCategory, typePlurals, prettyMediaTypes } from './stores';
+	import { MEDIAPATH } from './config';
 	import { Input } from 'sveltestrap';
 	import { createEventDispatcher } from 'svelte';
 	var clip = $DREXItem.content.clip;
@@ -15,68 +16,82 @@
 
 	let dispatch = createEventDispatcher();
 
-	function dispatchFileBrowser(type, role, index = 0) {
-		dispatch('fileBrowser', {
-			type: type,
-			role: role,
-			index: index,
-		});
-	}
+	// function dispatchFileBrowser(type, role, index = 0) {
+	// 	dispatch('fileBrowser', {
+	// 		type: type,
+	// 		role: role,
+	// 		index: index,
+	// 	});
+	// }
 
-	function toggleModal(modal, options) {
-		dispatch('toggleModal', {
-			modal: modal,
-			options: options,
+	// function toggleModal(modal, options) {
+	// 	dispatch('toggleModal', {
+	// 		modal: modal,
+	// 		options: options,
+	// 	});
+	// }
+
+	function dispatchSend(f, p = {}) {
+		dispatch('execute', {
+			f: f,
+			p: p,
 		});
 	}
+	console.log($DREXItem.type)
 </script>
 
 {#if $DREXItem.content}
 	{#if $DREXItem.type == 'musicalmoment'}
-		<div>
-			Clip name:
+		<div class="mb-3">
+			<p>Clip name:</p>
 			<Input type="text" bind:value={$DREXItem.content.title} />
 		</div>
-		<div>
-			Person/performer:
+		<div class="mb-3">
+			<p>Person/performer:</p>
 			<Input type="text" bind:value={$DREXItem.content.person} />
 		</div>
-		<div>
-			Instrument featured:
+		<div class="mb-3">
+			<p>Instrument featured:</p>
 			<Input type="text" bind:value={$DREXItem.content.instrument} />
 		</div>
-		<div>
-			Credit of:
+		<div class="mb-3">
+			<p>Credit of:</p>
 			<Input type="text" bind:value={$DREXItem.content.credit} />
 		</div>
 	{:else if $DREXItem.type == 'factoryfootage'}
-		<div>
-			Clip label:
+		<div class="mb-3">
+			<p>Clip label:</p>
 			<Input type="text" bind:value={$DREXItem.content.label} />
 		</div>
-		<div>
-			Caption:
+		<div class="mb-3">
+			<p>Caption:</p>
 			<Input type="text" bind:value={$DREXItem.content.caption} />
 		</div>
 	{:else if $DREXItem.type == 'oralhistory'}
-		<div>
-			Clip label:
+		<div class="mb-3">
+			<p>Clip label:</p>
 			<Input type="text" bind:value={$DREXItem.content.label} />
 		</div>
-		<div>
-			Summary:
+		<div class="mb-3">
+			<p>Summary:</p>
 			<Input type="text" bind:value={$DREXItem.content.summary} />
 		</div>
+	{:else if $DREXItem.type == 'custom'}
+		<div class="mb-3">
+			<p>Clip label:</p>
+			<Input type="text" bind:value={$DREXItem.content.label} />
+		</div>
 	{/if}
-	<div>
+	<div class="mb-3">
 		<p>Thumbnail image:</p>
 		{#if $DREXItem.content.thumbnail}
-			<img src={$mediaPath + 'images/' + $DREXItem.content.thumbnail} alt={$DREXItem.content.thumbnail} />
+			<img src={MEDIAPATH + 'images/' + $DREXItem.content.thumbnail} alt={$DREXItem.content.thumbnail} />
 		{/if}
 		<p
 			class="filelink"
 			on:click={() => {
-				toggleModal('file', { type: 'images', role: 'thumbnail' });
+				dispatchSend('toggleModal', { modal: 'file', options: { type: 'images', role: 'thumbnail' } });
+				//toggleModal('file', { type: 'images', role: 'thumbnail' });
 			}}
 		>
 			{#if $DREXItem.content.thumbnail}
@@ -86,10 +101,10 @@
 			{/if}
 		</p>
 	</div>
-
-	<video id="video" controls>
+	<div class="mb-3 w-96">
+	<video id="video" controls style="w-24">
 		{#if $DREXItem.content.clip}
-			<source src={$mediaPath + 'videos/' + $DREXItem.content.clip} />
+			<source src={MEDIAPATH + 'videos/' + $DREXItem.content.clip} />
 		{/if}
 		<track kind="captions" />
 	</video>
@@ -97,7 +112,8 @@
 	<p
 		class="filelink"
 		on:click={() => {
-			toggleModal('file', { type: 'videos', role: 'clip' });
+			dispatchSend('toggleModal', { modal: 'file', options: { type: 'videos', role: 'clip' } });
+			//toggleModal('file', { type: 'videos', role: 'clip' });
 		}}
 	>
 		{#if $DREXItem.content.clip}
@@ -106,4 +122,5 @@
 			Add clip file
 		{/if}
 	</p>
+	</div>
 {/if}

@@ -1,66 +1,50 @@
 <script>
-	import { Row } from 'sveltestrap';
+	import { Row, Col, Button, Badge } from 'sveltestrap';
 	import { MinusCircle, ArrowUp, ArrowDown, PlusCircle } from 'lucide-svelte';
 	import { createEventDispatcher } from 'svelte';
-	import { RailMap, state, typePlurals, mediaTypes, DREXItem, prettyMediaTypes, mediaPath } from './stores';
+	import { RailMap, state, typePlurals, mediaTypes, DREXItem, prettyMediaTypes } from './stores';
+	import { MEDIAPATH } from './config';
 	import { arrayMoveMutable } from 'array-move';
-	import { Input } from 'sveltestrap';
+	import { Input, Card, CardBody, CardFooter, CardHeader, CardTitle } from 'sveltestrap';
+
+	export let contentType;
+	var RMContent;
 
 	const dispatch = createEventDispatcher();
 
-	function toggleModal(modal, options) {
-		dispatch('toggleModal', {
-			modal: modal,
-			options: options,
+	function dispatchSend(f, p = {}) {
+		dispatch('execute', {
+			f: f,
+			p: p,
 		});
 	}
 
-	function getItem(item, type) {
-		dispatch('getItem', {
-			type: type,
-			item: item,
-		});
-	}
-
-	function modifyRailItem(action, item, type, categoryTitle = '') {
-		dispatch('modifyRailItem', {
-			action: action,
-			item: item,
-			type: type,
-			categoryTitle: categoryTitle,
-		});
-	}
-
-	function initializeNewItem(type, title) {
-		dispatch('initializeNewItem', {
-			type: type,
-			categoryTitle: title,
-		});
-	}
-
-	$: RMContent = $RailMap.content[$RailMap.content.findIndex((t) => t.title == $state.activePrimary)];
+	$: RMContent = $RailMap.content[$RailMap.content.findIndex((t) => t.title == contentType)];
 </script>
 
 {#if RMContent}
-	<Row>
-		{#if RMContent.content.length == 0}
-			<div><p>No items yet.</p></div>
-		{/if}
-		{#if RMContent.contentType != 'media'}
-			<ol>
-				{#each RMContent.content as Item (Item)}
-					<li>
-						<div class="item-row">
-							<span
-								class="list"
-								on:click={() => {
-									getItem(Item, RMContent.contentType);
-								}}>{Item}</span
-							>
+	{#if RMContent.content.length == 0}
+		<div><p>No items yet.</p></div>
+	{/if}
+	{#if RMContent.contentType != 'media'}
+		<ol>
+			{#each RMContent.content as Item (Item)}
+				<li>
+					<div class="item-row">
+						<p
+							class="list"
+							on:click={() => {
+								dispatchSend('getItem', { item: Item, contentType: RMContent.contentType });
+							}}
+						>
+							{Item}
+						</p>
+						<div class="item-controls">
 							{#if RMContent.content.indexOf(Item) != 0}
 								<div
 									on:click={() => {
-										modifyRailItem('moveUp', Item, RMContent.contentType, RMContent.title);
+										RMContent;
+										dispatchSend('modifyRailItem', { action: 'moveUp', item: Item, type: RMContent.contentType, categoryTitle: RMContent.title });
 									}}
 								>
 									<ArrowUp />
@@ -71,7 +55,7 @@
 							{#if RMContent.content.indexOf(Item) != RMContent.content.length - 1}
 								<div
 									on:click={() => {
-										modifyRailItem('moveDown', Item, RMContent.contentType, RMContent.title);
+										dispatchSend('modifyRailItem', { action: 'moveDown', item: Item, type: RMContent.contentType, categoryTitle: RMContent.title });
 									}}
 								>
 									<ArrowDown />
@@ -82,33 +66,65 @@
 							<div
 								class="delete-button"
 								on:click={() => {
-									modifyRailItem('remove', Item, RMContent.contentType, RMContent.title);
+									dispatchSend('modifyRailItem', { action: 'remove', item: Item, type: RMContent.contentType, categoryTitle: RMContent.title });
 								}}
 							>
 								<MinusCircle color="red" />
 							</div>
 						</div>
-					</li>
-				{/each}
-				<div class="add-button clickable">
-					<p
-						on:click={() => {
-							initializeNewItem(RMContent.contentType, RMContent.title);
-						}}
-					>
-						<PlusCircle color="green" />
-					</p>
+					</div>
+				</li>
+			{/each}
+			<div class="add-button clickable">
+				<div
+					on:click={() => {
+						dispatchSend('initializeNewItem', { contentType: RMContent.contentType, categoryTitle: RMContent.title });
+					}}
+				>
+					<PlusCircle color="green" class="inline" />
+					<p class="align-middle inline ml-1 pt-0.5">Add new item</p>
 				</div>
-			</ol>
-		{:else}
-			{#each RMContent.content as mediaType, Index}
-				{#if mediaType.heroImage}
-					<img src={$mediaPath + 'images/' + mediaType.heroImage} alt={mediaType.contentType} />
-				{/if}
+			</div>
+		</ol>
+	{:else}
+		{#each RMContent.content as mediaType, Index}
+			<div class="border rounded-md p-1 mb-1">
+				<div class="item-row">
+					{#if mediaType.contentType == 'custom'}
+						<Input type="text" bind:value={mediaType.title} class="w-full" />
+					{:else}
+						<p>{mediaType.title ? mediaType.title : $prettyMediaTypes[mediaType.contentType]}</p>
+					{/if}
+					<div class="item-controls">
+						{#if Index != 0}
+							<div
+								on:click={() => {
+									dispatchSend('modifyRailItem', { action: 'moveUp', item: mediaType.contentType, type: RMContent.contentType, categoryTitle: RMContent.title });
+								}}
+							>
+								<ArrowUp />
+							</div>
+						{:else}
+							<div class="blank-icon" />
+						{/if}
+
+						{#if Index != RMContent.content.length - 1}
+							<div
+								on:click={() => {
+									dispatchSend('modifyRailItem', { action: 'moveDown', item: mediaType.contentType, type: RMContent.contentType, categoryTitle: RMContent.title });
+								}}
+							>
+								<ArrowDown />
+							</div>
+						{:else}
+							<div class="blank-icon" />
+						{/if}
+					</div>
+				</div>
 				<p
 					class="filelink"
 					on:click={() => {
-						toggleModal('file', { type: 'images', role: 'mediaTypeHeroImage', index: Index });
+						dispatchSend('toggleModal', { modal: 'file', options: { type: 'images', role: 'mediaTypeHeroImage', index: Index } });
 					}}
 				>
 					{#if mediaType.heroImage}
@@ -117,107 +133,97 @@
 						Add thumbnail image
 					{/if}
 				</p>
-				<Input type="text" bind:value={mediaType.summary} placeholder="Summary (used for G2 Musical Moments)" />
-				<div class="item-row">
-					<h5>{$prettyMediaTypes[mediaType.contentType]}</h5>
-					{#if RMContent.content.findIndex((t) => t.contentType == mediaType.contentType) != 0}
-						<div
-							on:click={() => {
-								modifyRailItem('moveUp', mediaType.contentType, RMContent.contentType);
-							}}
-						>
-							<ArrowUp />
-						</div>
-					{:else}
-						<div class="blank-icon" />
-					{/if}
-
-					{#if RMContent.content.findIndex((t) => t.contentType == mediaType.contentType) != RMContent.content.length - 1}
-						<div
-							on:click={() => {
-								modifyRailItem('moveDown', mediaType.contentType, RMContent.contentType);
-							}}
-						>
-							<ArrowDown />
-						</div>
-					{:else}
-						<div class="blank-icon" />
-					{/if}
-				</div>
-				<ol>
+				{#if mediaType.heroImage}
+					<img src={MEDIAPATH + 'images/' + mediaType.heroImage} alt={mediaType.contentType} class="secondary-list-hero-image" />
+				{/if}
+				{#if $state.railSelection.substring(4, 5) == '2'}
+					<Input type="textarea" bind:value={mediaType.summary} placeholder="Summary (used for G2 Musical Moments)" />
+				{/if}
+				<ol class="mt-2">
 					{#each mediaType.content as Item (Item)}
 						<li>
 							<div class="item-row">
-								<span
-									class="list"
+								<p
+									class="mt-1 ml-2"
 									on:click={() => {
-										getItem(Item, mediaType.contentType);
+										dispatchSend('getItem', { item: Item, contentType: mediaType.contentType });
 									}}
 								>
-									{Item}
-								</span>
-								{#if mediaType.content.indexOf(Item) != 0}
+									{Item.substring(0, 20)}{Item.length > 20 ? '...' : ''}
+								</p>
+								<div class="item-controls">
+									{#if mediaType.content.indexOf(Item) != 0}
+										<div
+											on:click={() => {
+												dispatchSend('modifyRailItem', { action: 'moveUp', item: Item, type: mediaType.contentType, categoryTitle: mediaType.title });
+											}}
+										>
+											<ArrowUp />
+										</div>
+									{:else}
+										<div class="blank-icon" />
+									{/if}
+									{#if mediaType.content.indexOf(Item) != mediaType.content.length - 1}
+										<div
+											on:click={() => {
+												dispatchSend('modifyRailItem', { action: 'moveDown', item: Item, type: mediaType.contentType, categoryTitle: mediaType.title });
+											}}
+										>
+											<ArrowDown />
+										</div>
+									{:else}
+										<div class="blank-icon" />
+									{/if}
 									<div
+										class="delete-button"
 										on:click={() => {
-											modifyRailItem('moveUp', Item, mediaType.contentType);
+											dispatchSend('modifyRailItem', { action: 'remove', item: Item, type: mediaType.contentType, categoryTitle: mediaType.title });
 										}}
 									>
-										<ArrowUp />
+										<MinusCircle color="red" />
 									</div>
-								{:else}
-									<div class="blank-icon" />
-								{/if}
-								{#if mediaType.content.indexOf(Item) != mediaType.content.length - 1}
-									<div
-										on:click={() => {
-											modifyRailItem('moveDown', Item, mediaType.contentType);
-										}}
-									>
-										<ArrowDown />
-									</div>
-								{:else}
-									<div class="blank-icon" />
-								{/if}
-								<div
-									class="delete-button"
-									on:click={() => {
-										modifyRailItem('remove', Item, mediaType.contentType);
-									}}
-								>
-									<MinusCircle color="red" />
 								</div>
 							</div>
 						</li>
 					{/each}
-					<p
+					<div
 						on:click={() => {
-							initializeNewItem(mediaType.contentType);
+							dispatchSend('initializeNewItem', { contentType: mediaType.contentType, categoryTitle: mediaType.title });
 						}}
+						class="ml-2 mb-2 h-6 flex content-center"
 					>
-						<PlusCircle color="green" />
-					</p>
+						<PlusCircle color="green" class="inline" />
+						<p class="inline ml-1">Add new item</p>
+					</div>
 				</ol>
-			{/each}
-		{/if}
-	</Row>
+			</div>
+		{/each}
+	{/if}
 {/if}
 
 <style>
 	.item-row {
+		display: flex;
+		flex-direction: row;
+	}
+	.item-row p {
+		margin-bottom: 0;
+	}
+	.item-controls {
 		display: grid;
-		width: 100%;
-		grid-template-columns: 12fr 2fr 1fr 3fr;
-	}
-	.delete-button {
-		justify-self: right;
-	}
-	ol {
-		margin: 10px 10px;
+		width: 100px;
+		grid-template-columns: repeat(3, 1fr);
+		justify-content: end;
+		margin-left: auto;
+		margin-right: 0;
 	}
 	li {
 		margin-bottom: 8px;
 	}
 	.blank-icon {
 		width: 24px;
+	}
+	.secondary-list-hero-image {
+		max-width: 100%;
 	}
 </style>

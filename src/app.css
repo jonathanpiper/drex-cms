@@ -26,7 +26,7 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
+  /* display: flex; */
   min-width: 320px;
   min-height: 100vh;
 }
@@ -41,8 +41,6 @@ h1 {
 }
 
 #app {
-  margin: 60px auto;
-  width: 90%;
   padding: 0;
   /* text-align: center; */
 }
@@ -76,5 +74,11 @@ button:focus-visible {
   }
   button {
     background-color: #f9f9f9;
+  }
+}
+
+@media (min-width: 1800px) {
+  .container-xxl, .container-xl, .container-lg, .container-md, .container-sm, .container {
+    max-width: 1720px;
   }
 }

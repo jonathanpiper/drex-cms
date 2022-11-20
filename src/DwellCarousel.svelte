@@ -1,82 +1,80 @@
 <script>
-	import { RailMap, mediaPath } from './stores';
+	import { MEDIAPATH } from './config';
+	import { Accordion, AccordionItem } from 'sveltestrap';
 	import { ArrowLeft, ArrowRight, MinusCircle } from 'lucide-svelte';
 	import { createEventDispatcher } from 'svelte';
+	export let images;
 
 	const dispatch = createEventDispatcher();
 
-	function toggleModal(modal, options) {
-		dispatch('toggleModal', {
-			modal: modal,
-			options: options,
-		});
-	}
-
-	function modifyDwellImageArray(image, action, index) {
-		dispatch('modifyDwellImageArray', {
-			image: image,
-			action: action,
-			index: index,
+	function dispatchSend(f, p) {
+		dispatch('execute', {
+			f: f,
+			p: p,
 		});
 	}
 </script>
 
-<div class="image-container">
-	{#each $RailMap.dwell.images as Image, Index}
-		<div class="grid-container-item">
-			<img src={$mediaPath + 'images/' + Image} class="storyThumbnail" alt={Image.full} />
-			<p
-				class="filelink"
-				on:click={() => {
-					toggleModal('file', { type: 'images', role: 'images', index: $RailMap.dwell.images.indexOf(Image) });
-				}}
-			>
-				{Image}
-			</p>
-			<div class="grid-container-item-controls">
-				<div />
-				{#if $RailMap.dwell.images.indexOf(Image) != 0}
-					<div
+<Accordion>
+	<AccordionItem header="Dwell screen images">
+		<div class="image-container">
+			{#each images as Image, Index}
+				<div class="grid-container-item">
+					<img src={MEDIAPATH + 'images/' + Image} class="storyThumbnail" alt={Image.full} />
+					<p
+						class="filelink"
 						on:click={() => {
-							modifyDwellImageArray(Image, 'moveup', Index);
+							dispatchSend('toggleModal', { modal: 'file', options: { type: 'images', role: 'dwellImages', index: images.indexOf(Image) } });
 						}}
 					>
-						<ArrowLeft />
+						{Image}
+					</p>
+					<div class="grid-container-item-controls">
+						<div />
+						{#if images.indexOf(Image) != 0}
+							<div
+								on:click={() => {
+									dispatchSend('modifyDwellImageArray', { image: Image, action: 'moveup', index: Index });
+								}}
+							>
+								<ArrowLeft />
+							</div>
+						{:else}
+							<div class="blank-icon" />
+						{/if}
+						{#if images.indexOf(Image) != images.length - 1}
+							<div
+								on:click={() => {
+									dispatchSend('modifyDwellImageArray', { image: Image, action: 'movedown', index: Index });
+								}}
+							>
+								<ArrowRight />
+							</div>
+						{:else}
+							<div class="blank-icon" />
+						{/if}
+						<div />
+						<div
+							on:click={() => {
+								dispatchSend('modifyDwellImageArray', { image: Image, action: 'remove', index: Index });
+							}}
+						>
+							<MinusCircle color="red" />
+						</div>
 					</div>
-				{:else}
-					<div class="blank-icon" />
-				{/if}
-				{#if $RailMap.dwell.images.indexOf(Image) != $RailMap.dwell.images.length - 1}
-					<div
-						on:click={() => {
-							modifyDwellImageArray(Image, 'movedown', Index);
-						}}
-					>
-						<ArrowRight />
-					</div>
-				{:else}
-					<div class="blank-icon" />
-				{/if}
-				<div />
-				<div
-					on:click={() => {
-						modifyDwellImageArray(Image, 'remove', Index);
-					}}
-				>
-					<MinusCircle color="red" />
 				</div>
-			</div>
+			{/each}
 		</div>
-	{/each}
-</div>
-<p
-	class="filelink"
-	on:click={() => {
-		toggleModal('file', { type: 'images', role: 'dwellImages', index: $RailMap.dwell.images.length });
-	}}
->
-	Add image
-</p>
+		<p
+			class="filelink"
+			on:click={() => {
+				dispatchSend('toggleModal', { modal: 'file', options: { type: 'images', role: 'dwellImages', index: images.length } });
+			}}
+		>
+			Add image
+		</p>
+	</AccordionItem>
+</Accordion>
 
 <style>
 	.blank-icon {

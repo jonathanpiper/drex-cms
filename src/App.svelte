@@ -1,23 +1,57 @@
 <script>
-	import { Badge, Form, FormGroup, Input, Label, Container, Row, Col, Button, Modal, ModalBody, ModalFooter, ModalHeader, Navbar, NavbarBrand, Nav, NavItem, NavLink, Styles } from 'sveltestrap';
-	import { titleCase, getKeyByValue } from './functions';
-	import StoryItems from './StoryItems.svelte';
-	import VideoItems from './VideoItems.svelte';
-	import ObjectItems from './ObjectItems.svelte';
+	import {
+		Badge,
+		Form,
+		FormGroup,
+		Input,
+		Label,
+		Container,
+		Row,
+		Col,
+		Button,
+		Modal,
+		ModalBody,
+		ModalFooter,
+		ModalHeader,
+		Navbar,
+		NavbarBrand,
+		Nav,
+		NavItem,
+		NavLink,
+		Styles,
+		Accordion,
+		AccordionItem,
+		Spinner,
+		Icon,
+		TabContent,
+		TabPane,
+	} from 'sveltestrap';
+	import { titleCase, getKeyByValue, gotoRail, modifyDwellImageArray, moveRailMapType, removeRailMapType, expandRail, modifyImageArray } from './functions';
 	import Modals from './Modals.svelte';
 	import PrimaryList from './PrimaryList.svelte';
 	import SecondaryList from './SecondaryList.svelte';
 	import DwellCarousel from './DwellCarousel.svelte';
+	import RailsList from './RailsList.svelte';
+	import HomeScreen from './HomeScreen.svelte';
 	import { onMount, afterUpdate } from 'svelte';
-	import { RailMap, state, DREXItem, activeMediaCategory, mediaPath, drexPath, fileList, activeFile, newItem, listItemsOfType, typePlurals, mediaTypes } from './stores';
-	import { PlusCircle, MinusCircle, ArrowDown, ArrowUp, ArrowLeft, ArrowRight, RefreshCw, Save, Send } from 'lucide-svelte';
+	import { RailMap, state, DREXItem, activeMediaCategory, fileList, activeFile, newItem, listItemsOfType, mediaTypes, defaults, backupItem } from './stores';
+	import { DREXPATH, MEDIAPATH } from './config';
+	import { PlusCircle, MinusCircle, ArrowDown, ArrowUp, ArrowLeft, ArrowRight, RefreshCw, Save, Send, XCircle } from 'lucide-svelte';
 	import { arrayMoveMutable } from 'array-move';
-	var railSelection = '';
+	import ItemEditor from './ItemEditor.svelte';
+	import ConfigurationEditor from './ConfigurationEditor.svelte';
+	import PrimaryNavigation from './PrimaryNavigation.svelte';
+	import TailwindCss from './TailwindCSS.svelte';
+	import Header from './Header.svelte';
 	var LoadTrigger;
 	var itemSaved = false;
 	var activeFileRole;
 	var activeFileIndex;
 	var listRails = [];
+	var railContentObject = {};
+
+	var backupRail = {};
+	var configurationObject = {};
 
 	onMount(async () => {
 		listRails = await getAllItemsOfType('rail');
@@ -40,18 +74,25 @@
 	//Functions for handling modal windows.
 	const toggleObjectModal = () => ($state.objectModalOpen = !$state.objectModalOpen);
 	const toggleFileBrowserModal = () => ($state.fileBrowserModalOpen = !$state.fileBrowserModalOpen);
+	// const toggleEditorModal = () => ({)$state.editorModalOpen = !$state.editorModalOpen);
 
-	async function toggleModal(modal, options = {}) {
+	async function toggleModal(modal, options) {
 		if (modal == 'object') {
 			toggleObjectModal();
 		} else if (modal == 'file') {
+			console.log(options);
 			$activeFile.type = options.type;
 			$activeFile.role = options.role;
 			$activeFile.index = options.index ? options.index : 0;
+			$activeFile.categoryIndex = options.categoryIndex ? options.categoryIndex : 0;
+			$state.fileUploadResult = '';
+			$state.fileUploadMessage = '';
+			console.log($activeFile.type);
 			$fileList = await getFileList($activeFile.type);
-			//$fileList.files = $fileList.files.filter((file) => file.indexOf('-THUMB') == -1);
 			console.log($fileList);
 			toggleFileBrowserModal();
+		} else if (modal == 'editor') {
+			toggleEditorModal();
 		}
 	}
 
@@ -65,6 +106,11 @@
 		toggleModal(modal, options);
 	}
 
+	async function dispatchGetFileList(event) {
+		var fileType = event.detail.fileType;
+		$fileList = await getFileList($activeFile.type);
+	}
+
 	async function dispatchGetItem(event) {
 		console.log(event.detail);
 		const type = event.detail.type;
@@ -72,20 +118,21 @@
 		getItem(item, type);
 	}
 
-	function dispatchModifyRailItem(event) {
-		const action = event.detail.action;
-		const item = event.detail.item;
-		const type = event.detail.type;
-		const categoryTitle = event.detail.categoryTitle;
+	function modifyRailItem(options) {
+		console.log(options);
+		const action = options.action;
+		const item = options.item;
+		const type = options.type;
+		const categoryTitle = options.categoryTitle;
 		switch (action) {
 			case 'remove':
-				removeRailMapItem(item, type, categoryTitle);
+				$RailMap = removeRailMapItem($RailMap, item, type, categoryTitle);
 				break;
 			case 'moveUp':
-				moveRailMapItem('up', item, type, categoryTitle);
+				$RailMap = moveRailMapItem($RailMap, 'up', item, type, categoryTitle);
 				break;
 			case 'moveDown':
-				moveRailMapItem('down', item, type, categoryTitle);
+				$RailMap = moveRailMapItem($RailMap, 'down', item, type, categoryTitle);
 				break;
 		}
 	}
@@ -95,13 +142,6 @@
 		saveRail(rail);
 	}
 
-	function dispatchModifyDwellImageArray(event) {
-		const image = event.detail.image;
-		const action = event.detail.action;
-		const index = event.detail.index;
-		modifyDwellImageArray(image, action, index);
-	}
-
 	function dispatchInitializeNewItem(event) {
 		const type = event.detail.type;
 		const categoryTitle = event.detail.categoryTitle;
@@ -109,85 +149,121 @@
 	}
 
 	async function getRail(rail) {
-		var response = await fetch($drexPath + 'map/' + rail);
+		var response = await fetch(DREXPATH + 'map/' + rail);
+		var promise = await response.json();
+		return promise;
+	}
+
+	async function getRailContent(rail) {
+		var response = await fetch(DREXPATH + 'rail/' + rail);
+		var promise = await response.json();
+		return promise;
+	}
+
+	async function getConfig() {
+		var response = await fetch(DREXPATH + 'config');
 		var promise = await response.json();
 		return promise;
 	}
 
 	async function loadRail(rail) {
-		console.log($state.activeRail); // = rail;
-		$RailMap = await getRail(rail);
-		$state.railMapMediaIndex = $RailMap.content.findIndex((t) => t.contentType == 'media');
-		LoadTrigger = 'go';
+		LoadTrigger = false;
+		if (rail != 'config') {
+			$RailMap = await getRail(rail);
+			backupRail = JSON.parse(JSON.stringify($RailMap));
+			$state.mediaIndex = $RailMap.content.findIndex((t) => t.contentType == 'media');
+			LoadTrigger = 'go';
+		} else {
+			configurationObject = await getConfig();
+			console.log(configurationObject);
+			$RailMap = {};
+			LoadTrigger = 'go';
+		}
 	}
 
-	async function getItem(item, type) {
-		$DREXItem = { identifier: '', type: '', content: {} };
-		var request = await fetch($drexPath + 'item/' + type + '/' + item);
+	function undoRailChanges() {
+		$RailMap = JSON.parse(JSON.stringify(backupRail));
+	}
+
+	async function getItem(item, type = '') {
+		var request = await fetch(DREXPATH + 'item/' + type + '/' + item);
 		var promise = await request.json();
-		$DREXItem = promise;
-		console.log($DREXItem);
-		$state.itemSaved = false;
+		console.log(promise);
+		return promise;
 	}
 
 	async function saveItem(item) {
-		var request = await fetch($drexPath + 'update/item/' + item.identifier, {
-			method: 'PUT',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(item),
-		});
-		var promise = await request.json();
-		if (promise.result == 'success') {
-			itemSaved = true;
+		try {
+			$state.saveItemInProgress = true;
+			var request = await fetch(DREXPATH + 'update/item/' + item.identifier, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(item),
+			});
+			var promise = await request.json();
+			if (promise.success) {
+				itemSaved = true;
+			} else {
+				$state.errors['saveItem'] = true;
+			}
+			$state.saveItemInProgress = false;
+			return true;
+		} catch (err) {
+			console.log(err);
 		}
 	}
 
 	async function saveRail(rail) {
-		var request = await fetch($drexPath + 'update/rail/' + $state.activeRail, {
+		$state.updateRailInProgress = true;
+		var request = await fetch(DREXPATH + 'update/rail/' + $state.activeRail, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(rail),
 		});
 		var promise = await request.json();
-		if (promise.result == 'success') {
+		if (promise.success) {
 			$state.railSaved = true;
+		} else {
+			$state.errors['saveRail'] = true;
 		}
+		$state.updateRailInProgress = false;
 	}
 
 	async function createItem(item) {
-		var request = await fetch($drexPath + 'create', {
+		$state.createItemInProgress = true;
+		var request = await fetch(DREXPATH + 'create', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(item),
 		});
 		var promise = await request.json();
-		if (promise.result == 'success') {
-			$state.railSaved = true;
-		}
+		$state.errors['createNewItem'] = !promise.success;
+		console.log('ba');
+		// if (promise.success) {
+		// 	$state.errors['createNewItem'] = false;
+		// } else {
+		// 	$state.errors['createNewItem'] = true;
+		// }
+		$state.createItemInProgress = false;
 	}
 
 	async function getAllItemsOfType(type) {
-		var request = await fetch($drexPath + 'item/' + type + '/all');
+		var request = await fetch(DREXPATH + 'item/' + type + '/all');
 		var promise = await request.json();
 		return promise;
 	}
 
 	async function initializeNewItem(typePlural, categoryTitle) {
 		resetNewItem();
-		$newItem.type = getKeyByValue($typePlurals, typePlural);
-		console.log('hi', categoryTitle);
+		$newItem.type = getKeyByValue($defaults.typePlurals, typePlural);
 		$state.activeCategory = categoryTitle;
-		console.log($newItem);
 		$listItemsOfType = await getAllItemsOfType($newItem.type);
 		toggleModal('object');
 	}
 
-	async function addExistingItem(event) {
-		const item = event.detail.item;
-		const type = event.detail.type;
+	async function addExistingItem(item, type) {
 		if ($mediaTypes.indexOf(type) == -1) {
 			const typeIndex = $RailMap.content.findIndex((t) => t.title == $state.activeCategory);
-			console.log($state.activeCategory);
 			const itemIndex = $RailMap.content[typeIndex].content.indexOf(item.identifier);
 			if (itemIndex == -1) {
 				$RailMap.content[typeIndex].content = [...$RailMap.content[typeIndex].content, item.identifier];
@@ -198,10 +274,10 @@
 				$state.errorMessage = 'Item is already in rail.';
 			}
 		} else {
-			const typeIndex = $RailMap.content[$state.railMapMediaIndex].content.findIndex((t) => t.contentType == $typePlurals[type]);
-			const itemIndex = $RailMap.content[$state.railMapMediaIndex].content[typeIndex].content.indexOf(item.identifier);
+			const typeIndex = $RailMap.content[$state.mediaIndex].content.findIndex((t) => t.title == $state.activeCategory);
+			const itemIndex = $RailMap.content[$state.mediaIndex].content[typeIndex].content.indexOf(item.identifier);
 			if (itemIndex == -1) {
-				$RailMap.content[$state.railMapMediaIndex].content[typeIndex].content = [...$RailMap.content[$state.railMapMediaIndex].content[typeIndex].content, item.identifier];
+				$RailMap.content[$state.mediaIndex].content[typeIndex].content = [...$RailMap.content[$state.mediaIndex].content[typeIndex].content, item.identifier];
 				const saveRailResult = await saveRail($RailMap);
 				$DREXItem = item;
 				toggleModal('object');
@@ -225,23 +301,33 @@
 			type: '',
 			content: {},
 		};
+		$state.errors = {};
 	}
 
-	async function addNewItem(event) {
-		const item = event.detail.item;
+	function confirmMoveAwayFromItem() {
+		// var confirmation = confirm(`Moving away from this item will reset any changes you've made. Do you want to proceed?`);
+		// if (confirmation) {
+		// 	resetDREXItem();
+		// } else {
+		// 	return;
+		// }
+	}
+
+	async function addNewItem(item) {
 		const itemIndex = $listItemsOfType.findIndex((i) => i.identifier == item.identifier);
+		console.log(item, itemIndex);
 		if (itemIndex != -1) {
-			$state.errorMeesage = 'Identifier already exists.';
+			$state.errors.createNewItem = true;
 			return;
 		} else {
 			const createItemResult = await createItem(item);
 			var typeIndex;
 			if ($mediaTypes.indexOf(item.type) == -1) {
-				typeIndex = $RailMap.content.findIndex((t) => t.contentType == $typePlurals[item.type]);
+				typeIndex = $RailMap.content.findIndex((t) => t.title == $state.activeCategory);
 				$RailMap.content[typeIndex].content = [...$RailMap.content[typeIndex].content, item.identifier];
 			} else {
-				typeIndex = $RailMap.content[$state.railMapMediaIndex].content.findIndex((t) => t.contentType == $typePlurals[item.type]);
-				$RailMap.content[$state.railMapMediaIndex].content[typeIndex].content = [...$RailMap.content[$state.railMapMediaIndex].content[typeIndex].content, item.identifier];
+				typeIndex = $RailMap.content[$state.mediaIndex].content.findIndex((t) => t.contentType == $defaults.typePlurals[item.type]);
+				$RailMap.content[$state.mediaIndex].content[typeIndex].content = [...$RailMap.content[$state.mediaIndex].content[typeIndex].content, item.identifier];
 			}
 			const saveRailResult = await saveRail($RailMap);
 			$DREXItem = item;
@@ -250,243 +336,314 @@
 	}
 
 	async function getFileList(fileType) {
-		var request = await fetch($drexPath + 'filelist/' + fileType);
+		console.log(fileType);
+		var request = await fetch(DREXPATH + 'filelist/' + fileType);
 		var promise = await request.json();
 		return promise;
 	}
 
-	function setFile(event) {
-		var file = event.detail.file;
-		var fileRole = event.detail.fileRole;
-		var fileIndex = event.detail.fileIndex;
+	function setObjectImageFile(imageArray = [], imageFile, imageIndex) {
+		if (!imageArray[imageIndex]) {
+			imageArray = [...imageArray, {}];
+		}
+		const image = new Image();
+		image.src = MEDIAPATH + 'objects/' + imageFile;
+		imageArray[imageIndex].name = imageFile.slice(0, -4).split('_')[1];
+		imageArray[imageIndex].width = image.width;
+		imageArray[imageIndex].height = image.height;
+		imageArray[imageIndex].altsizes = ['_half', '_quarter', '_threequarter'];
+		return imageArray;
+	}
+
+	function setItemImageFile(imageArray = [], imageFile, imageIndex) {
+		console.log(imageArray, imageIndex);
+		if (!imageArray[imageIndex]) {
+			imageArray = [...imageArray, {}];
+		}
+		imageArray[imageIndex].full = imageFile;
+		imageArray[imageIndex].thumbnail = imageFile.slice(0, -4) + '-THUMB' + imageFile.slice(-4);
+		imageArray[imageIndex].caption = '';
+		return imageArray;
+	}
+
+	function setFile(file, fileRole, fileType, fileIndex, categoryIndex) {
 		if (fileRole == 'images') {
-			if (!$DREXItem.content.images) {
-				$DREXItem.content.images = [];
+			if (fileType == 'objects') {
+				$DREXItem.content.images = setObjectImageFile($DREXItem.content.images, file, fileIndex);
+				// if (!$DREXItem.content.images) {
+				// 	$DREXItem.content.images = [];
+				// }
+				// if (!$DREXItem.content.images[fileIndex]) {
+				// 	$DREXItem.content.images = [...$DREXItem.content.images, {}];
+				// }
+				// const image = new Image();
+				// image.src = MEDIAPATH + 'objects/' + file;
+				// $DREXItem.content.images[fileIndex].name = file.slice(0, -4).split('_')[1];
+				// $DREXItem.content.images[fileIndex].width = image.width;
+				// $DREXItem.content.images[fileIndex].height = image.height;
+				// $DREXItem.content.images[fileIndex].altsizes = ['_half', '_quarter', '_threequarter'];
+				// console.log($DREXItem.content.images[fileIndex]);
+			} else {
+				$DREXItem.content.images = setItemImageFile($DREXItem.content.images, file, fileIndex);
+				// if (!$DREXItem.content.images) {
+				// 	$DREXItem.content.images = [];
+				// }
+				// if (!$DREXItem.content.images[fileIndex]) {
+				// 	$DREXItem.content.images = [...$DREXItem.content.images, {}];
+				// }
+				// $DREXItem.content.images[fileIndex].full = file;
+				// $DREXItem.content.images[fileIndex].thumbnail = file.slice(0, -4) + '-THUMB' + file.slice(-4);
+				// $DREXItem.content.images[fileIndex].caption = '';
 			}
-			if (!$DREXItem.content.images[fileIndex]) {
-				$DREXItem.content.images = [...$DREXItem.content.images, {}];
-			}
-			$DREXItem.content.images[fileIndex].full = file;
-			$DREXItem.content.images[fileIndex].thumbnail = file.slice(0, -4) + '-THUMB' + file.slice(-4);
-			$DREXItem.content.images[fileIndex].caption = 'Insert caption.';
 		} else if (fileRole == 'mediaTypeHeroImage') {
-			//console.log($activeFile.index, $RailMap.content[$state.railMapMediaIndex].content[$activeFile.index]);
-			$RailMap.content[$state.railMapMediaIndex].content[$activeFile.index].heroImage = file;
+			$RailMap.content[$state.mediaIndex].content[$activeFile.index].heroImage = file;
 		} else if (fileRole == 'dwellImages') {
+			console.log(file, fileRole, fileIndex);
 			$RailMap.dwell.images[fileIndex] = file;
+		} else if (fileRole == 'icon') {
+			$RailMap.content[categoryIndex].icon = file;
 		} else {
 			$DREXItem.content[fileRole] = file;
 		}
 		toggleFileBrowserModal();
 	}
 
-	function removeRailMapItem(item, type, categoryTitle) {
+	function removeRailMapItem(map, item, type, categoryTitle) {
 		const confirmation = confirm('Remove ' + item + ' from rail ' + $state.activeRail + '? Note that this only removes the item from this rail; it does not delete the item from the database.');
-		const typeIndex = $RailMap.content.findIndex((t) => t.title == categoryTitle);
+		const typeIndex = map.content.findIndex((t) => t.title == categoryTitle);
 		console.log(categoryTitle, typeIndex);
 		if (confirmation) {
-			if ($mediaTypes.indexOf(getKeyByValue($typePlurals, type)) == -1) {
-				const itemIndex = $RailMap.content[typeIndex].content.indexOf(item);
-				$RailMap.content[typeIndex].content.splice(itemIndex, 1);
-				$RailMap.content = $RailMap.content;
+			if ($mediaTypes.indexOf(getKeyByValue($defaults.typePlurals, type)) == -1) {
+				const itemIndex = map.content[typeIndex].content.indexOf(item);
+				map.content[typeIndex].content.splice(itemIndex, 1);
+				map.content = map.content;
 			} else {
-				const mediaTypeIndex = $RailMap.content[$state.railMapMediaIndex].content.findIndex((t) => t.contentType == type);
-				const itemIndex = $RailMap.content[$state.railMapMediaIndex].content[mediaTypeIndex].content.indexOf(item);
-				$RailMap.content[$state.railMapMediaIndex].content[mediaTypeIndex].content.splice(itemIndex, 1);
-				$RailMap.content[$state.railMapMediaIndex].content[mediaTypeIndex].content = $RailMap.content[$state.railMapMediaIndex].content[mediaTypeIndex].content;
+				const mediaTypeIndex =
+					categoryTitle == ''
+						? map.content[$state.mediaIndex].content.findIndex((t) => t.contentType == type)
+						: map.content[$state.mediaIndex].content.findIndex((t) => t.title == categoryTitle);
+				const itemIndex = map.content[$state.mediaIndex].content[mediaTypeIndex].content.indexOf(item);
+				map.content[$state.mediaIndex].content[mediaTypeIndex].content.splice(itemIndex, 1);
+				map.content[$state.mediaIndex].content[mediaTypeIndex].content = $RailMap.content[$state.mediaIndex].content[mediaTypeIndex].content;
 			}
 			if ($DREXItem.identifier == item) {
 				resetDREXItem();
 			}
 		}
+		return map;
 	}
 
-	function moveRailMapItem(direction, item, type, categoryTitle) {
-		var increment = direction == 'up' ? -1 : 1;
-		const typeIndex = $RailMap.content.findIndex((t) => t.title == categoryTitle);
+	function moveRailMapItem(map, direction, item, type, categoryTitle = '') {
+		console.log(direction, item, type, categoryTitle);
+		const increment = direction == 'up' ? -1 : 1;
+		const typeIndex = map.content.findIndex((t) => t.title == categoryTitle);
+		console.log(typeIndex);
 		var itemIndex;
-		if ($mediaTypes.indexOf(getKeyByValue($typePlurals, type)) == -1) {
+		if ($mediaTypes.indexOf(getKeyByValue($defaults.typePlurals, type)) == -1) {
 			if (type == 'media') {
-				itemIndex = $RailMap.content[typeIndex].content.findIndex((t) => t.contentType == item);
+				itemIndex = map.content[typeIndex].content.findIndex((t) => t.contentType == item);
 			} else {
-				itemIndex = $RailMap.content[typeIndex].content.indexOf(item);
+				itemIndex = map.content[typeIndex].content.indexOf(item);
 			}
-			arrayMoveMutable($RailMap.content[typeIndex].content, itemIndex, itemIndex + increment);
+			arrayMoveMutable(map.content[typeIndex].content, itemIndex, itemIndex + increment);
 		} else {
-			const mediaTypeIndex = $RailMap.content[$state.railMapMediaIndex].content.findIndex((t) => t.contentType == type);
-			const itemIndex = $RailMap.content[$state.railMapMediaIndex].content[mediaTypeIndex].content.indexOf(item);
-			arrayMoveMutable($RailMap.content[$state.railMapMediaIndex].content[mediaTypeIndex].content, itemIndex, itemIndex + increment);
+			const mediaTypeIndex =
+				categoryTitle == ''
+					? map.content[$state.mediaIndex].content.findIndex((t) => t.contentType == type)
+					: map.content[$state.mediaIndex].content.findIndex((t) => t.title == categoryTitle);
+			const itemIndex = map.content[$state.mediaIndex].content[mediaTypeIndex].content.indexOf(item);
+			arrayMoveMutable(map.content[$state.mediaIndex].content[mediaTypeIndex].content, itemIndex, itemIndex + increment);
 		}
-		$RailMap.content[typeIndex].content = $RailMap.content[typeIndex].content;
-	}
-
-	function modifyImageArray(event) {
-		const image = event.detail.image;
-		const action = event.detail.action;
-		const imageIndex = $DREXItem.content.images.indexOf(image);
-		console.log(imageIndex);
-		if (imageIndex != -1) {
-			switch (action) {
-				case 'remove':
-					$DREXItem.content.images.splice(imageIndex, 1);
-					console.log($DREXItem.content.images);
-					break;
-				case 'moveup':
-					arrayMoveMutable($DREXItem.content.images, imageIndex, imageIndex - 1);
-					break;
-				case 'movedown':
-					arrayMoveMutable($DREXItem.content.images, imageIndex, imageIndex + 1);
-					break;
-			}
-			$DREXItem.content.images = $DREXItem.content.images;
-		}
-	}
-
-	function modifyDwellImageArray(image, action, imageIndex) {
-		if (imageIndex != -1) {
-			switch (action) {
-				case 'remove':
-					$RailMap.dwell.images.splice(imageIndex, 1);
-					break;
-				case 'moveup':
-					arrayMoveMutable($RailMap.dwell.images, imageIndex, imageIndex - 1);
-					break;
-				case 'movedown':
-					arrayMoveMutable($RailMap.dwell.images, imageIndex, imageIndex + 1);
-					break;
-			}
-			$RailMap.dwell.images = $RailMap.dwell.images;
-		}
-	}
-
-	$: if ($state.activeRail != railSelection.split(' ')[0]) {
-		$state.activeRail = railSelection.split(' ')[0];
-		if ($state.activeRail != '') {
-			loadRail($state.activeRail);
-		}
-		resetDREXItem();
+		return map;
 	}
 
 	async function publishRail(rail) {
-		await fetch($drexPath + 'push/media/' + rail);
+		await fetch(DREXPATH + 'push/media/' + rail);
 	}
 
-	async function reloadRail(rail) {
-		await fetch($drexPath + 'reload/' + rail);
+	async function refreshRail(rail) {
+		await fetch(DREXPATH + 'reload/' + rail);
 	}
 
-	function gotoRail(railIdentifier) {
-		railSelection = railIdentifier;
+	async function dispatchManager(event) {
+		const { f, p } = event.detail;
+		// const p = event.detail.p;
+		console.log(f, p);
+		switch (f) {
+			case 'modifyDwellImageArray':
+				$RailMap = modifyDwellImageArray($RailMap, p.image, p.action, p.index);
+				break;
+			case 'toggleModal':
+				if (!p.options) {
+					p.options = {};
+				}
+				toggleModal(p.modal, p.options);
+				break;
+			case 'gotoRail':
+				$state.railSelection = p.railID;
+				if ($state.railSelection != $state.activeRail) {
+					$state.activeRail = $state.railSelection;
+					railContentObject = await getRailContent($state.activeRail);
+					loadRail($state.activeRail);
+					$DREXItem = JSON.parse(JSON.stringify($newItem));
+				}
+				console.log($DREXItem);
+				break;
+			case 'addExistingItem':
+				addExistingItem(p.item, p.type);
+				break;
+			case 'addNewItem':
+				addNewItem(p.item);
+				break;
+			case 'setFile':
+				setFile(p.file, p.role, p.type, p.index, p.categoryIndex);
+				break;
+			case 'confirmMoveAwayFromItem':
+				confirmMoveAwayFromItem();
+				break;
+			case 'moveRailMapType':
+				$RailMap = moveRailMapType($RailMap, p.direction, p.type);
+				break;
+			case 'removeRailMapType':
+				$RailMap = removeRailMapType($RailMap, $state.activeRail, p.type);
+				resetDREXItem();
+				return;
+			case 'expandRail':
+				$RailMap = expandRail($RailMap, $defaults.emptyContentType);
+				break;
+			case 'initializeNewItem':
+				resetNewItem();
+				console.log(p.contentType);
+				if (p.contentType == 'custom') {
+					$newItem.type = 'custom';
+				} else {
+					$newItem.type = getKeyByValue($defaults.typePlurals, p.contentType.toLowerCase());
+				}
+				$state.activeCategory = p.categoryTitle;
+				console.log($state.activeCategory, $newItem.type);
+				$listItemsOfType = await getAllItemsOfType($newItem.type);
+				toggleModal('object');
+				break;
+			case 'getItem':
+				resetDREXItem();
+				$DREXItem = await getItem(p.item, p.contentType);
+				$backupItem = JSON.parse(JSON.stringify($DREXItem));
+				break;
+			case 'undoItemChanges':
+				$DREXItem = JSON.parse(JSON.stringify($backupItem));
+				$state.itemChanged = false;
+				break;
+			case 'modifyRailItem':
+				modifyRailItem(p);
+				console.log(p);
+				break;
+			case 'saveItem':
+				if (saveItem(p.item)) {
+					$backupItem = JSON.parse(JSON.stringify($DREXItem));
+				}
+				break;
+			case 'modifyImageArray':
+				$DREXItem = modifyImageArray(p.item, p.image, p.action);
+				break;
+		}
 	}
 </script>
 
-<Styles />
+<TailwindCss />
 
-<Modals on:toggleModal={dispatchToggleModal} on:setFile={setFile} on:addExistingItem={addExistingItem} on:addNewItem={addNewItem} />
-<Container fluid>
-	<Navbar color="light" light>
-		<NavbarBrand>DREX Content Management System</NavbarBrand>
-	</Navbar>
-	<Row>
-		<Col xs="1">
-			<Nav vertical>
-				{#each listRails as Rail}
-				<NavItem>
-					<NavLink on:click={() => gotoRail(Rail.identifier)}>{Rail.title}</NavLink>
-				</NavItem>
-				{/each}
-			</Nav>
-		</Col>
-		<Col>
-			{#if LoadTrigger}
-			<Row>
-				<Input bsSize="lg" bind:value={$RailMap.title} />
-				<Input type="textarea" rows="6" bind:value={$RailMap.body} />
-			</Row>
-			<Row>
-				<DwellCarousel on:modifyDwellImageArray={dispatchModifyDwellImageArray} on:toggleModal={dispatchToggleModal} />
-			</Row>
-			<div class="app-content top-spacer">
-				<div>
-					<PrimaryList on:getItem={dispatchGetItem} on:modifyRailItem={dispatchModifyRailItem} on:initializeNewItem={dispatchInitializeNewItem} on:resetDREXItem={resetDREXItem} />
+<Modals on:execute={dispatchManager} />
+<div class="fixed w-full z-50">
+	<Header />
+</div>
+<div class="h-full w-96 px-3 py-2 bg-gray-200 fixed top-24 z-10">
+	<RailsList {listRails} on:execute={dispatchManager} />
+</div>
+<div class="absolute top-24 w-full pl-96">
+	<div class="p-3">
+		{#if LoadTrigger}
+			{#if $state.activeRail != 'config'}
+				<div class="w-full">
+					<HomeScreen bind:title={$RailMap.title} bind:body={$RailMap.body} />
 				</div>
-				<div>
-					{#if $state.activePrimary != ''}
-						<SecondaryList on:getItem={dispatchGetItem} on:modifyRailItem={dispatchModifyRailItem} on:initializeNewItem={dispatchInitializeNewItem} on:toggleModal={dispatchToggleModal} />
-					{/if}
+				<div class="w-full">
+					<DwellCarousel bind:images={$RailMap.dwell.images} on:execute={dispatchManager} />
 				</div>
-				<div>
-					<Row>
-						{#await $DREXItem then}
-							{#if typeof $DREXItem === 'object' && $DREXItem.type}
-								{#if $DREXItem.type == 'artifact'}
-									<ObjectItems />
-								{:else if $DREXItem.type == 'story'}
-									<StoryItems on:toggleModal={dispatchToggleModal} on:modifyImageArray={modifyImageArray} on:setFile={setFile} />
-								{:else if $DREXItem.type == 'oralhistory' || $DREXItem.type == 'factoryfootage' || $DREXItem.type == 'musicalmoment'}
-									<VideoItems on:toggleModal={dispatchToggleModal} />
-								{/if}
-								<div class="top-spacer">
-									<br />
-									<Button
-										color="primary"
-										on:click={() => {
-											saveItem($DREXItem);
-										}}>Save</Button
-									>
-									{#if $state.itemSaved}<Badge color="success">Saved!</Badge>{/if}
-								</div>
-							{/if}
-						{/await}
-					</Row>
+				<div class="mt-4 w-full grid grid-cols-3 gap-4">
+					<div>
+						<PrimaryList
+							on:getItem={dispatchGetItem}
+							on:initializeNewItem={dispatchInitializeNewItem}
+							on:resetDREXItem={resetDREXItem}
+							on:toggleModal={dispatchToggleModal}
+							on:execute={dispatchManager}
+						/>
+					</div>
+					<div class="col-span-2">
+						<ItemEditor on:execute={dispatchManager} />
+					</div>
 				</div>
-			</div>
-			<div class="bottom-buttons">
-				<div />
-				<Button
-					size="lg"
-					color="success"
-					on:click={() => {
-						saveRail($RailMap);
-					}}><Save /> Save {titleCase($state.activeRail)}</Button
-				>
-				<Button
-					size="lg"
-					color="info"
-					on:click={() => {
-						publishRail($state.activeRail);
-					}}><Send /> Publish {titleCase($state.activeRail)}</Button
-				>
-				<Button
-					size="lg"
-					color="primary"
-					on:click={() => {
-						reloadRail($state.activeRail);
-					}}><RefreshCw /> Reload {titleCase($state.activeRail)}</Button
-				>
-			</div>
+				<div class="mt-12 w-full grid grid-cols-4 gap-4">
+					<Button
+						size="lg"
+						color="success"
+						on:click={() => {
+							saveRail($RailMap);
+						}}
+						><div class="flex content-center justify-center">
+							<Save class="inline" />
+							<p class="inline ml-2">Save {titleCase($state.activeRail)}</p>
+							{#if $state.updateRailInProgress}<div class="spinner-container inline">
+									<Spinner size="sm" />
+								</div>{/if}{#if $state.errors.saveRail}<Icon name="x-circle" class="inline" />{/if}
+						</div></Button
+					>
+					<Button
+						size="lg"
+						color="warning"
+						on:click={() => {
+							undoRailChanges();
+						}}
+						><div class="flex content-center justify-center">
+							<XCircle class="inline" />
+							<p class="inline ml-2">Reset all changes</p>
+						</div></Button
+					>
+					<Button
+						size="lg"
+						color="info"
+						on:click={() => {
+							publishRail($state.activeRail);
+						}}
+					>
+						<div class="flex content-center justify-center">
+							<Send class="inline" />
+							<p class="inline ml-2">Publish {titleCase($state.activeRail)}</p>
+						</div></Button
+					>
+					<Button
+						size="lg"
+						color="primary"
+						on:click={() => {
+							refreshRail($state.activeRail);
+						}}
+					>
+						<div class="flex content-center justify-center">
+							<RefreshCw class="inline" />
+							<p class="inline ml-2">Refresh {titleCase($state.activeRail)}</p>
+						</div></Button
+					>
+				</div>
+			{:else}
+				<ConfigurationEditor {configurationObject} />
+				{configurationObject['dr-title-font']}
+			{/if}
 		{/if}
-		</Col>
-	</Row>
-
-</Container>
+	</div>
+</div>
 
 <style>
-	.bottom-buttons {
-		margin-top: 60px;
-		width: 100%;
-		display: grid;
-		grid-template-columns: 7fr 1fr 1fr 1fr;
-		column-gap: 60px;
-	}
-	.app-content {
-		width: 100%;
-		display: grid;
-		grid-template-columns: 1fr 1fr 4fr;
-		column-gap: 60px;
-	}
-	.top-spacer {
-		margin-top: 20px;
+	:global(.container-fluid) {
+		padding: 0 !important;
 	}
 	:global(.filelink) {
 		text-decoration: underline;
@@ -502,5 +659,30 @@
 	}
 	:global(.clickable) {
 		cursor: pointer;
+	}
+	.spinner-container {
+		display: inline;
+		padding-left: 10px !important;
+	}
+	@font-face {
+		font-family: 'Montserrat';
+		src: url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap') format('truetype');
+	}
+
+	@font-face {
+		font-family: 'Signika';
+		src: url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap') format('truetype');
+	}
+
+	@font-face {
+		font-family: 'OpenSans';
+		src: url('/mediapool/OpenSans-VariableFont_wdthwght.ttf') format('truetype');
+	}
+	:global(:root) {
+		--dr-title-font: '';
+		--dr-body-font: '';
+		--dr-gallery-color: '';
+		--dr-gallery-color-active: '';
+		--dr-gallery-color-dateRange: '';
 	}
 </style>

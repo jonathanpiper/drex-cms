@@ -1,187 +1,229 @@
 <script>
-	import { Modal, ModalHeader, ModalBody, ModalFooter, Form, FormGroup, FormText, Label, Input, Button, TabContent } from 'sveltestrap';
-	import { RailMap, state, fileList, drexPath, activeFile, newItem, listItemsOfType, DREXItem, typePlurals, mediaTypes } from './stores';
+	import { Modal, ModalHeader, ModalBody, ModalFooter, Form, FormGroup, FormText, Label, Input, Button, TabContent, Col, Row, Spinner, Icon, Badge } from 'sveltestrap';
+	import { RailMap, state, fileList, activeFile, newItem, listItemsOfType, DREXItem, defaults, mediaTypes } from './stores';
+	import { DREXPATH } from './config';
 	import { createEventDispatcher, onMount } from 'svelte';
+	import { fade } from 'svelte/transition';
 
 	let dispatch = createEventDispatcher();
 
-	function toggleModal(modal) {
-		dispatch('toggleModal', {
-			modal: modal,
-		});
-	}
-
-	function setFile(file, fileRole, fileIndex = 0) {
-		dispatch('setFile', {
-			file: file,
-			fileRole: fileRole,
-			fileIndex: fileIndex,
-		});
-	}
-
-	function addExistingItem(item, type) {
-		dispatch('addExistingItem', {
-			item: item,
-			type: type,
-		});
-	}
-
-	function addNewItem(item) {
-		dispatch('addNewItem', {
-			item: item,
+	function dispatchSend(f, p) {
+		dispatch('execute', {
+			f: f,
+			p: p,
 		});
 	}
 
 	function submitForm(e) {
 		e.preventDefault();
+		$state.fileUploadInProgress = true;
 		const fileUpload = document.getElementById('newFileUpload');
-		console.log(fileUpload.files[0])
+		//console.log($activeFile.role)
 		const formData = new FormData();
+		formData.append('fileRole', $activeFile.role);
+		formData.append('drexItemType', $activeFile.type);
 		formData.append('fileUpload', fileUpload.files[0]);
-		fetch($drexPath + 'upload', {
+		fetch(DREXPATH + 'upload', {
 			method: 'POST',
 			body: formData,
 		})
-			.then((res) => console.log(res))
-			.catch((err) => ('Error occured', err));
+			.then((res) => res.json())
+			.then((res) => {
+				$state.fileUploadResult = res.success;
+				$state.fileUploadMessage = res.result;
+				$state.fileUploadInProgress = false;
+			});
 	}
 </script>
 
 <Modal
 	isOpen={$state.objectModalOpen}
 	toggle={() => {
-		toggleModal('object');
+		dispatchSend('toggleModal', { modal: 'object' });
 	}}
 	size="xl"
 >
 	<ModalHeader
 		toggle={() => {
-			toggleModal('object');
+			dispatchSend('toggleModal', { modal: 'object' });
 		}}
 	>
 		New {$newItem.type} item
 	</ModalHeader>
 	<ModalBody>
-		<p
-			class="link"
+		<button
+			class="p-2 px-4 mr-2 bg-blue-200 text-lg font-bold mb-2 underline {$state.flagNewOrExisting == 'existing' ? 'bg-blue-700 text-white' : ''}"
 			on:click={() => {
 				$state.flagNewOrExisting = 'existing';
 			}}
 		>
 			Add existing item
-		</p>
-		<p
-			class="link"
+		</button>
+		<button
+			class="p-2 px-4 bg-blue-200 text-lg font-bold mb-2 underline {$state.flagNewOrExisting == 'new' ? 'bg-blue-700 text-white' : ''}"
 			on:click={() => {
 				$state.flagNewOrExisting = 'new';
 			}}
 		>
 			Create new item
-		</p>
-		{#if $state.flagNewOrExisting == 'existing'}
-			{#if Object.keys($listItemsOfType).length > 0}
-				<h4 class="top-spacer">Select an existing {$newItem.type}</h4>
-				{#each $listItemsOfType as Item}
-					{#if $newItem.type == 'story'}
-						{#if $RailMap.content[$RailMap.content.findIndex((t) => t.contentType == $typePlurals[$newItem.type])].content.indexOf(Item.identifier) == -1}
-							<div
-								class="top-spacer"
-								on:click={() => {
-									addExistingItem(Item, $newItem.type);
-								}}
-							>
-								<h5>{Item.identifier}</h5>
-								<h6>{Item.content.title}</h6>
-								<span>{Item.content.body.slice(0, 120)}...</span>
-							</div>
+		</button>
+		<div class="my-2">
+			{#if $state.flagNewOrExisting == 'existing'}
+				{#if Object.keys($listItemsOfType).length > 0}
+					<p class="">Select an existing {$newItem.type}:</p>
+					{#each $listItemsOfType as Item}
+						{#if $newItem.type == 'story'}
+							{#if $RailMap.content[$RailMap.content.findIndex((t) => t.title == $state.activeCategory)].content.indexOf(Item.identifier) == -1}
+								<div
+									class="mx-2 my-3 p-2 shadow-sm border rounded cursor-pointer"
+									on:click={() => {
+										dispatchSend('addExistingItem', { item: Item, type: $newItem.type });
+									}}
+								>
+									<p class="font-bold">{Item.content.title}</p>
+									<p>{Item.content.body.slice(0, 140)}...</p>
+									<p class="text-gray-400">{Item.identifier}</p>
+								</div>
+							{/if}
+						{:else if $newItem.type == 'artifact'}
+							{#if $RailMap.content[$RailMap.content.findIndex((t) => t.title == $state.activeCategory)].content.indexOf(Item.identifier) == -1}
+								<div
+									class="mx-2 my-3 p-2 shadow-sm border rounded cursor-pointer"
+									on:click={() => {
+										dispatchSend('addExistingItem', { item: Item, type: $newItem.type });
+									}}
+								>
+									<p class="font-bold">{Item.identifier}</p>
+									<p>{Item.content.maker} {Item.content.title}, {Item.content.date}</p>
+									{#if Item.content.body}
+										<p>{Item.content.body.slice(0, 140)}...</p>
+									{/if}
+								</div>
+							{/if}
+						{:else if $mediaTypes.indexOf($newItem.type) != -1}
+							{#if $RailMap.content[$state.railMapMediaIndex].content[$RailMap.content[$state.railMapMediaIndex].content.findIndex((t) => t.title == $state.activeCategory)].content.indexOf(Item.identifier) == -1}
+								<div
+									class="mx-2 my-3 p-2 shadow-sm border rounded cursor-pointer"
+									on:click={() => {
+										dispatchSend('addExistingItem', { item: Item, type: $newItem.type });
+									}}
+								>
+									<p>{Item.identifier}</p>
+								</div>
+							{/if}
 						{/if}
-					{:else if $mediaTypes.indexOf($newItem.type) != -1}
-						<!-- <h5>{ $RailMap.content[$state.railMapMediaIndex].content }</h5> -->
-						{#if $RailMap.content[$state.railMapMediaIndex].content[$RailMap.content[$state.railMapMediaIndex].content.findIndex((t) => t.contentType == $typePlurals[$newItem.type])].content.indexOf(Item.identifier) == -1}
-							<div
-								class="top-spacer"
-								on:click={() => {
-									addExistingItem(Item, $newItem.type);
-								}}
-							>
-								<h5>{Item.identifier}</h5>
-							</div>
-						{/if}
-					{/if}
-				{/each}
+					{/each}
+				{/if}
+			{:else if $newItem.type == 'story'}
+				<FormGroup>
+					<Label>Enter a unique identifier for the new {$newItem.type}:</Label>
+					<Input type="text" bind:value={$newItem.identifier} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Title:</Label>
+					<Input type="text" bind:value={$newItem.content['title']} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Body:</Label>
+					<Input type="textarea" rows="6" bind:value={$newItem.content['body']} />
+				</FormGroup>
+			{:else if $newItem.type == 'musicalmoment'}
+				<FormGroup>
+					<Label>Enter a unique identifier for the new {$newItem.type}:</Label>
+					<Input type="text" bind:value={$newItem.identifier} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Title:</Label>
+					<Input type="text" bind:value={$newItem.content['title']} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Person:</Label>
+					<Input type="text" bind:value={$newItem.content['person']} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Instrument:</Label>
+					<Input type="text" bind:value={$newItem.content['instrument']} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Credit:</Label>
+					<Input type="text" bind:value={$newItem.content['credit']} />
+				</FormGroup>
+			{:else if $newItem.type == 'factoryfootage'}
+				<FormGroup>
+					<Label>Enter a unique identifier for the new {$newItem.type}:</Label>
+					<Input type="text" bind:value={$newItem.identifier} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Label:</Label>
+					<Input type="text" bind:value={$newItem.content['label']} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Caption:</Label>
+					<Input type="text" bind:value={$newItem.content['caption']} />
+				</FormGroup>
+			{:else if $newItem.type == 'oralhistory'}
+				<FormGroup>
+					<Label>Enter a unique identifier for the new {$newItem.type}:</Label>
+					<Input type="text" bind:value={$newItem.identifier} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Label:</Label>
+					<Input type="text" bind:value={$newItem.content['label']} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Summary:</Label>
+					<Input type="text" bind:value={$newItem.content['summary']} />
+				</FormGroup>
+			{:else if $newItem.type == 'custom'}
+				<FormGroup>
+					<Label>Enter a unique identifier for the new {$newItem.type}:</Label>
+					<Input type="text" bind:value={$newItem.identifier} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Label:</Label>
+					<Input type="text" bind:value={$newItem.content['label']} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Summary:</Label>
+					<Input type="text" bind:value={$newItem.content['summary']} />
+				</FormGroup>
+			{:else if $newItem.type == 'artifact'}
+				<FormGroup>
+					<Label>Enter the catalogue number for the new {$newItem.type} (e.g. "M2022.1.1"):</Label>
+					<Input type="text" bind:value={$newItem.identifier} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Maker:</Label>
+					<Input type="text" bind:value={$newItem.content['maker']} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Title:</Label>
+					<Input type="text" bind:value={$newItem.content['title']} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Date:</Label>
+					<Input type="text" bind:value={$newItem.content['date']} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Description:</Label>
+					<Input type="textarea" bind:value={$newItem.content['body']} />
+				</FormGroup>
+				<FormGroup>
+					<Label>Credit line:</Label>
+					<Input type="text" bind:value={$newItem.content['credit']} />
+				</FormGroup>
 			{/if}
-		{:else if $newItem.type == 'story'}
-			<FormGroup>
-				<Label>Enter a unique identifier for the new {$newItem.type}:</Label>
-				<Input type="text" bind:value={$newItem.identifier} />
-			</FormGroup>
-			<FormGroup>
-				<Label>Title:</Label>
-				<Input type="text" bind:value={$newItem.content['title']} />
-			</FormGroup>
-			<FormGroup>
-				<Label>Body:</Label>
-				<Input type="textarea" rows="6" bind:value={$newItem.content['body']} />
-			</FormGroup>
-		{:else if $newItem.type == 'musicalmoment'}
-			<FormGroup>
-				<Label>Enter a unique identifier for the new {$newItem.type}:</Label>
-				<Input type="text" bind:value={$newItem.identifier} />
-			</FormGroup>
-			<FormGroup>
-				<Label>Title:</Label>
-				<Input type="text" bind:value={$newItem.content['title']} />
-			</FormGroup>
-			<FormGroup>
-				<Label>Person:</Label>
-				<Input type="text" bind:value={$newItem.content['person']} />
-			</FormGroup>
-			<FormGroup>
-				<Label>Instrument:</Label>
-				<Input type="text" bind:value={$newItem.content['instrument']} />
-			</FormGroup>
-			<FormGroup>
-				<Label>Credit:</Label>
-				<Input type="text" bind:value={$newItem.content['credit']} />
-			</FormGroup>
-		{:else if $newItem.type == 'factoryfootage'}
-			<FormGroup>
-				<Label>Enter a unique identifier for the new {$newItem.type}:</Label>
-				<Input type="text" bind:value={$newItem.identifier} />
-			</FormGroup>
-			<FormGroup>
-				<Label>Label:</Label>
-				<Input type="text" bind:value={$newItem.content['label']} />
-			</FormGroup>
-			<FormGroup>
-				<Label>Caption:</Label>
-				<Input type="text" bind:value={$newItem.content['caption']} />
-			</FormGroup>
-		{:else if $newItem.type == 'oralhistory'}
-			<FormGroup>
-				<Label>Enter a unique identifier for the new {$newItem.type}:</Label>
-				<Input type="text" bind:value={$newItem.identifier} />
-			</FormGroup>
-			<FormGroup>
-				<Label>Label:</Label>
-				<Input type="text" bind:value={$newItem.content['label']} />
-			</FormGroup>
-			<FormGroup>
-				<Label>Summary:</Label>
-				<Input type="text" bind:value={$newItem.content['summary']} />
-			</FormGroup>
-		{/if}
-		{#if $state.errorMessage != ''}
-			{$state.errorMessage}
-		{/if}
+		</div>
 	</ModalBody>
 	<ModalFooter>
 		{#if $state.flagNewOrExisting == 'new'}
+			{#if $state.errors.createNewItem}Error creating new item{/if}
 			<Button
 				color="primary"
 				on:click={() => {
-					addNewItem($newItem);
-				}}>Save</Button
+					dispatchSend('addNewItem', { item: $newItem });
+				}}
+				>Save{#if $state.createItemInProgress}<div class="spinner-container"><Spinner size="sm" /></div>{/if}</Button
 			>
 		{/if}
 	</ModalFooter>
@@ -189,40 +231,74 @@
 <Modal
 	isOpen={$state.fileBrowserModalOpen}
 	toggle={() => {
-		toggleModal('file');
+		dispatchSend('toggleModal', { modal: 'file' });
 	}}
 	scrollable
 	size="xl"
 >
 	<ModalHeader
 		toggle={() => {
-			toggleModal('file');
+			dispatchSend('toggleModal', { modal: 'file' });
 		}}>Select file</ModalHeader
 	>
 	<ModalBody>
-			<FormGroup>
-				<Label for="newFileUpload">Upload new file</Label>
-				<Input type="file" name="newFileUpload" id="newFileUpload" />
-				<FormText color="muted">This is some placeholder block-level help text for the above input. It's a bit lighter and easily wraps to a new line.</FormText>
-				<Button type="submit" on:click={submitForm}>Upload</Button>
-			</FormGroup>
-		{#each $fileList.files as file}
-			{#if file.substring(0, 1) != '.'}
-				<p
-					on:click={() => {
-						setFile(file, $activeFile.role, $activeFile.index);
-					}}
+		<FormGroup>
+			<Label for="newFileUpload">Upload new file</Label>
+			<Row>
+				<Col xs="auto">
+					<Input type="file" name="newFileUpload" id="newFileUpload" />
+				</Col>
+				<Col xs="auto">
+					<Button type="submit" on:click={submitForm}
+						>Upload{#if $state.fileUploadInProgress}<div class="spinner-container"><Spinner size="sm" /></div>{/if}</Button
+					>
+				</Col>
+				<Col xs="auto"
+					>{#if $state.fileUploadMessage}<div transition:fade>
+							<p class="status-message">
+								{#if $state.fileUploadResult}<Icon name="check-circle" color="green" />{/if}{$state.fileUploadMessage}
+							</p>
+						</div>{/if}</Col
 				>
-					{file}
-				</p>
-			{/if}
-		{/each}
+			</Row>
+		</FormGroup>
+		<ul class="file-list list-unstyled">
+			{#each $fileList.files as file}
+				{#if $activeFile.type == 'objects'}
+					{#if file.indexOf($DREXItem.content.objectID) != -1}
+						<li
+							on:click={() => {
+								dispatchSend('setFile', { file: file, role: $activeFile.role, type: $activeFile.type, index: $activeFile.index, categoryIndex: $activeFile.categoryIndex });
+							}}
+						>
+							{file}
+						</li>
+					{/if}
+				{:else if file.substring(0, 1) != '.' && file.indexOf('-THUMB') == -1}
+					<li
+						on:click={() => {
+							dispatchSend('setFile', { file: file, role: $activeFile.role, type: $activeFile.type, index: $activeFile.index, categoryIndex: $activeFile.categoryIndex });
+						}}
+					>
+						{file}
+					</li>
+				{/if}
+			{/each}
+		</ul>
 	</ModalBody>
 	<ModalFooter />
 </Modal>
 
 <style>
-	.link {
-		text-decoration: 'underline';
+	.spinner-container {
+		display: inline;
+		padding-left: 10px !important;
+	}
+	.file-list {
+		columns: 3;
+	}
+	.status-message {
+		margin-top: 7px;
+		margin-bottom: 0;
 	}
 </style>
