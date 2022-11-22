@@ -340,7 +340,10 @@
 	}
 
 	async function publishRail(rail) {
-		await fetch(DREXPATH + 'push/media/' + rail);
+		$state.publishRailInProgress = true;
+		var promise = await fetch(DREXPATH + 'push/media/' + rail);
+		console.log(promise);
+		$state.publishRailInProgress = false;
 	}
 
 	async function refreshRail(rail) {
@@ -421,6 +424,10 @@
 			case 'modifyImageArray':
 				$DREXItem = modifyImageArray(p.item, p.image, p.action);
 				break;
+			case 'refreshItemsOfType':
+				$fileList = await getFileList($activeFile.type);
+				console.log($listItemsOfType);
+				break;
 		}
 	}
 </script>
@@ -488,6 +495,9 @@
 						<div class="flex content-center justify-center">
 							<Send class="inline" />
 							<p class="inline ml-2">Publish {titleCase($state.activeRail)}</p>
+							{#if $state.publishRailInProgress}<div class="spinner-container inline">
+								<Spinner size="sm" />
+							</div>{/if}{#if $state.errors.saveRail}<Icon name="x-circle" class="inline" />{/if}
 						</div></Button
 					>
 					<Button

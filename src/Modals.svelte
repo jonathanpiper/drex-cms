@@ -32,6 +32,7 @@
 				$state.fileUploadResult = res.success;
 				$state.fileUploadMessage = res.result;
 				$state.fileUploadInProgress = false;
+				dispatchSend('refreshItemsOfType', {});
 			});
 	}
 </script>
