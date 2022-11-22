@@ -46,7 +46,7 @@
 	<div class="image-container mb-2">
 		{#if editItem.content.images}
 			{#each editItem.content.images as Image, Index}
-				<div class="grid-container-item flex-col">
+				<div class="grid-container-item shadow-md rounded flex-col">
 					<img src={MEDIAPATH + 'objects/' + editItem.content.objectID + '_' + Image.name + '.jpg'} class="h-48 object-contain m-auto" alt={Image.full} />
 					<p
 						class="filelink"

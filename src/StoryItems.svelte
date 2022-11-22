@@ -56,10 +56,10 @@
 		</p>
 	</div>
 	<p class="top-spacer image-label">Story images:</p>
-	<div class="image-container mb-4">
+	<div class="image-container mb-2">
 		{#if editItem.content.images}
 			{#each editItem.content.images as Image, Index}
-				<div class="grid-container-item shado flex-col">
+				<div class="grid-container-item shadow-md flex-col rounded">
 					<img src={MEDIAPATH + 'images/' + Image.full} class="object-contain m-auto" alt={Image.full} />
 					<p
 						class="filelink"
@@ -107,6 +107,8 @@
 				</div>
 			{/each}
 		{/if}
+	</div>
+	<div class="mb-4">
 		<p
 			class="filelink"
 			on:click={() => {
