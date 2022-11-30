@@ -229,7 +229,9 @@
 				$state.errorMessage = 'Item is already in rail.';
 			}
 		} else {
-			const typeIndex = $RailMap.content[$state.mediaIndex].content.findIndex((t) => t.title == $state.activeCategory);
+			console.log(type)
+			const typeIndex = $RailMap.content[$state.mediaIndex].content.findIndex((t) => t.contentType == DEFAULTS.typePlurals[type]);
+			console.log(typeIndex)
 			const itemIndex = $RailMap.content[$state.mediaIndex].content[typeIndex].content.indexOf(item.identifier);
 			if (itemIndex == -1) {
 				$RailMap.content[$state.mediaIndex].content[typeIndex].content = [...$RailMap.content[$state.mediaIndex].content[typeIndex].content, item.identifier];
@@ -446,7 +448,7 @@
 		{#if LoadTrigger}
 			{#if $state.activeRail != 'config'}
 				<div class="w-full">
-					<HomeScreen bind:title={$RailMap.title} bind:body={$RailMap.body} />
+					<HomeScreen bind:title={$RailMap.title} bind:body={$RailMap.body} bind:dateRange={$RailMap.dateRange} />
 				</div>
 				<div class="w-full">
 					<DwellCarousel bind:images={$RailMap.dwell.images} on:execute={dispatchManager} />

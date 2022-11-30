@@ -34,5 +34,9 @@ export const DEFAULTS = {
 		factoryfootage: 'Factory Footage',
 		oralhistories: 'Oral Histories',
 		custom: 'custom'
-	}
+	}, altSizes: [
+		'_half',
+		'_quarter',
+		'_threequarter'
+	]
 };

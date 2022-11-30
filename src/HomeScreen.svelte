@@ -3,6 +3,7 @@
 	import { RailMap } from './stores.js';
 	export let title;
 	export let body;
+	export let dateRange;
 </script>
 
 <Accordion>
@@ -15,5 +16,11 @@
 			<Label for="homeScreenText">Home screen text</Label>
 			<Input name="homeScreenText" type="textarea" rows="8" bind:value={body} />
 		</FormGroup>
+		{#if dateRange}
+			<FormGroup>
+				<Label for="railDateRange">Date range</Label>
+				<Input name="railDateRange" type="text" bind:value={dateRange} />
+			</FormGroup>
+		{/if}
 	</AccordionItem>
 </Accordion>

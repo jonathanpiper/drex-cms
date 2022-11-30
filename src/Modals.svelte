@@ -102,7 +102,7 @@
 								</div>
 							{/if}
 						{:else if DEFAULTS.mediaTypes.indexOf($newItem.type) != -1}
-							{#if $RailMap.content[$state.railMapMediaIndex].content[$RailMap.content[$state.railMapMediaIndex].content.findIndex((t) => t.title == $state.activeCategory)].content.indexOf(Item.identifier) == -1}
+							{#if $RailMap.content[$state.mediaIndex].content[$RailMap.content[$state.mediaIndex].content.findIndex((t) => t.title == $state.activeCategory)].content.indexOf(Item.identifier) == -1}
 								<div
 									class="mx-2 my-3 p-2 shadow-sm border rounded cursor-pointer"
 									on:click={() => {
@@ -266,7 +266,7 @@
 		<ul class="file-list list-unstyled">
 			{#each $fileList.files as file}
 				{#if $activeFile.type == 'objects'}
-					{#if file.indexOf($DREXItem.content.objectID) != -1}
+					{#if file.indexOf($DREXItem.content.objectID) != -1 && !DEFAULTS.altSizes.some(size => file.includes(size))}
 						<li
 							on:click={() => {
 								dispatchSend('setFile', { file: file, role: $activeFile.role, type: $activeFile.type, index: $activeFile.index, categoryIndex: $activeFile.categoryIndex });

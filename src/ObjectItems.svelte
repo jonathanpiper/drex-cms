@@ -14,6 +14,10 @@
 			p: p,
 		});
 	}
+
+	$: if (!editItem.content.images) {
+		editItem.content.images = [];
+	}
 </script>
 
 {#if Object.keys(editItem).length != 0}
