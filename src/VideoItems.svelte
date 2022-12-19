@@ -59,6 +59,10 @@
 			<p>Credit of:</p>
 			<Input type="text" bind:value={editItem.content.credit} />
 		</div>
+		<div class="mb-3">
+			<p>Year:</p>
+			<Input type="text" bind:value={editItem.content.year} />
+		</div>
 	{:else if editItem.type == 'factoryfootage'}
 		<div class="mb-3">
 			<p>Clip label:</p>
@@ -122,5 +126,6 @@
 				Add clip file
 			{/if}
 		</p>
+		<input type="checkbox" bind:checked={editItem.content.staticClip} /> Is this a static clip (i.e. music with a static image rather than video)?
 	</div>
 {/if}
