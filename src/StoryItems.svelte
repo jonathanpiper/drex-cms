@@ -109,6 +109,7 @@
 		{/if}
 	</div>
 	<div class="mb-4">
+		{#if editItem.content.images.length < 4}
 		<p
 			class="filelink"
 			on:click={() => {
@@ -117,6 +118,9 @@
 		>
 			Add image
 		</p>
+		{:else}
+		<p>Image limit reached.</p>
+		{/if}
 	</div>
 	<div class="mb-4">
 		<audio id="audio" controls class="mb-2">
@@ -126,18 +130,18 @@
 			<track kind="captions" />
 		</audio>
 		{#if editItem.content.inlineAudioClip}
-			<Input type="text" bind:value={editItem.content.inlineAudioClip.caption} />
+			<Input type="text" bind:value={editItem.content.inlineAudioClip.label} placeholder="Label the audio clip" />
 		{/if}
 		<p
 			class="filelink"
 			on:click={() => {
-				dispatchSend('toggleModal', { modal: 'file', options: { type: 'audio', role: 'embeddedAudioClip' } });
+				dispatchSend('toggleModal', { modal: 'file', options: { type: 'audio', role: 'inlineAudioClip' } });
 			}}
 		>
 			{#if editItem.content.inlineAudioClip}
 				{editItem.content.inlineAudioClip.source}
 			{:else}
-				Add embedded audio clip
+				Add inline audio clip
 			{/if}
 		</p>
 	</div>

@@ -34,7 +34,7 @@
 								dispatchSend('getItem', { item: Item, contentType: categoryContent.contentType });
 							}}
 						>
-							{Item}
+							{Index + 1}. {Item}
 						</p>
 						<div class="item-controls">
 							{#if categoryContent.content.indexOf(Item) != 0}
@@ -145,7 +145,7 @@
 										dispatchSend('getItem', { item: Item, contentType: mediaType.contentType });
 									}}
 								>
-									{Item.substring(0, 20)}{Item.length > 18 ? '...' : ''}
+									{MediaItemIndex + 1}. {Item.substring(0, 20)}{Item.length > 18 ? '...' : ''}
 								</p>
 								<div class="item-controls">
 									{#if MediaItemIndex != 0}

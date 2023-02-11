@@ -26,11 +26,11 @@
 		<Input id="story-title" type="text" bind:value={editItem.content.maker} />
 	</FormGroup>
 	<FormGroup>
-		<Label for="story-title">Maker</Label>
+		<Label for="story-title">Title</Label>
 		<Input id="story-title" type="text" bind:value={editItem.content.title} />
 	</FormGroup>
 	<FormGroup>
-		<Label for="story-title">Maker</Label>
+		<Label for="story-title">Year</Label>
 		<Input id="story-title" type="text" bind:value={editItem.content.date} />
 	</FormGroup>
 	<FormGroup>

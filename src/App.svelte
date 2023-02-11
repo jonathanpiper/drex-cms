@@ -131,16 +131,10 @@
 
 	async function loadRail(rail) {
 		LoadTrigger = false;
-		if (rail != 'config') {
-			$RailMap = await getRail(rail);
-			backupRail = JSON.parse(JSON.stringify($RailMap));
-			$state.mediaIndex = $RailMap.content.findIndex((t) => t.contentType == 'media');
-			LoadTrigger = 'go';
-		} else {
-			configurationObject = await getConfig();
-			$RailMap = {};
-			LoadTrigger = 'go';
-		}
+		$RailMap = await getRail(rail);
+		backupRail = JSON.parse(JSON.stringify($RailMap));
+		$state.mediaIndex = $RailMap.content.findIndex((t) => t.contentType == 'media');
+		LoadTrigger = 'go';
 	}
 
 	function undoRailChanges() {
@@ -184,6 +178,7 @@
 		var promise = await request.json();
 		if (promise.success) {
 			$state.railSaved = true;
+			backupRail = JSON.parse(JSON.stringify(rail));
 		} else {
 			$state.errors['saveRail'] = true;
 		}
@@ -229,9 +224,9 @@
 				$state.errorMessage = 'Item is already in rail.';
 			}
 		} else {
-			console.log(type)
+			console.log(type);
 			const typeIndex = $RailMap.content[$state.mediaIndex].content.findIndex((t) => t.contentType == DEFAULTS.typePlurals[type]);
-			console.log(typeIndex)
+			console.log(typeIndex);
 			const itemIndex = $RailMap.content[$state.mediaIndex].content[typeIndex].content.indexOf(item.identifier);
 			if (itemIndex == -1) {
 				$RailMap.content[$state.mediaIndex].content[typeIndex].content = [...$RailMap.content[$state.mediaIndex].content[typeIndex].content, item.identifier];
@@ -310,6 +305,11 @@
 			$RailMap.dwell.images[fileIndex] = file;
 		} else if (fileRole == 'icon') {
 			$RailMap.content[categoryIndex].icon = file;
+		} else if (fileRole == 'inlineAudioClip') {
+			$DREXItem.content['inlineAudioClip'] = {
+				source: file,
+				label: ''
+			}
 		} else {
 			$DREXItem.content[fileRole] = file;
 		}
@@ -368,7 +368,6 @@
 				$state.railSelection = p.railID;
 				if ($state.railSelection != $state.activeRail) {
 					$state.activeRail = $state.railSelection;
-					railContentObject = await getRailContent($state.activeRail);
 					loadRail($state.activeRail);
 					$DREXItem = JSON.parse(JSON.stringify($newItem));
 				}
@@ -446,79 +445,77 @@
 <div class="absolute top-20 w-full pl-96">
 	<div class="p-3">
 		{#if LoadTrigger}
-			{#if $state.activeRail != 'config'}
-				<div class="w-full">
-					<HomeScreen bind:title={$RailMap.title} bind:body={$RailMap.body} bind:dateRange={$RailMap.dateRange} />
+			<div class="w-full">
+				<HomeScreen bind:title={$RailMap.title} bind:body={$RailMap.body} bind:dateRange={$RailMap.dateRange} />
+			</div>
+			<div class="w-full">
+				<DwellCarousel bind:images={$RailMap.dwell.images} on:execute={dispatchManager} />
+			</div>
+			<div class="mt-4 w-full grid grid-cols-3 gap-4">
+				<div>
+					<PrimaryList bind:railContent={$RailMap.content} on:execute={dispatchManager} />
 				</div>
-				<div class="w-full">
-					<DwellCarousel bind:images={$RailMap.dwell.images} on:execute={dispatchManager} />
+				<div class="col-span-2">
+					<ItemEditor bind:editItem={$DREXItem} on:execute={dispatchManager} />
 				</div>
-				<div class="mt-4 w-full grid grid-cols-3 gap-4">
-					<div>
-						<PrimaryList bind:railContent={$RailMap.content} on:execute={dispatchManager} />
-					</div>
-					<div class="col-span-2">
-						<ItemEditor bind:editItem={$DREXItem} on:execute={dispatchManager} />
-					</div>
-				</div>
-				<div class="mt-12 w-full grid grid-cols-4 gap-4">
-					<Button
-						size="lg"
-						color="success"
-						on:click={() => {
-							saveRail($RailMap);
-						}}
-						><div class="flex content-center justify-center">
-							<Save class="inline" />
-							<p class="inline ml-2">Save {titleCase($state.activeRail)}</p>
-							{#if $state.updateRailInProgress}<div class="spinner-container inline">
-									<Spinner size="sm" />
-								</div>{/if}{#if $state.errors.saveRail}<Icon name="x-circle" class="inline" />{/if}
-						</div></Button
-					>
-					<Button
-						size="lg"
-						color="warning"
-						on:click={() => {
-							undoRailChanges();
-						}}
-						><div class="flex content-center justify-center">
-							<XCircle class="inline" />
-							<p class="inline ml-2">Reset all changes</p>
-						</div></Button
-					>
-					<Button
-						size="lg"
-						color="info"
-						on:click={() => {
-							publishRail($state.activeRail);
-						}}
-					>
-						<div class="flex content-center justify-center">
-							<Send class="inline" />
-							<p class="inline ml-2">Publish {titleCase($state.activeRail)}</p>
-							{#if $state.publishRailInProgress}<div class="spinner-container inline">
+			</div>
+			<div class="mt-12 text-2xl">
+				{#if JSON.stringify($RailMap) !== JSON.stringify(backupRail)}<Badge color="warning">Rail has unsaved changes!</Badge>{/if}
+			</div>
+			<div class="mt-2 w-full grid grid-cols-4 gap-4">
+				<Button
+					size="lg"
+					color="success"
+					on:click={() => {
+						saveRail($RailMap);
+					}}
+					><div class="flex content-center justify-center">
+						<Save class="inline" />
+						<p class="inline ml-2">Save {titleCase($state.activeRail)}</p>
+						{#if $state.updateRailInProgress}<div class="spinner-container inline">
 								<Spinner size="sm" />
 							</div>{/if}{#if $state.errors.saveRail}<Icon name="x-circle" class="inline" />{/if}
-						</div></Button
-					>
-					<Button
-						size="lg"
-						color="primary"
-						on:click={() => {
-							refreshRail($state.activeRail);
-						}}
-					>
-						<div class="flex content-center justify-center">
-							<RefreshCw class="inline" />
-							<p class="inline ml-2">Refresh {titleCase($state.activeRail)}</p>
-						</div></Button
-					>
-				</div>
-			{:else}
-				<ConfigurationEditor {configurationObject} />
-				{configurationObject['dr-title-font']}
-			{/if}
+					</div></Button
+				>
+				<Button
+					size="lg"
+					color="warning"
+					on:click={() => {
+						undoRailChanges();
+					}}
+					><div class="flex content-center justify-center">
+						<XCircle class="inline" />
+						<p class="inline ml-2">Reset all changes</p>
+					</div></Button
+				>
+				<Button
+					size="lg"
+					color="info"
+					on:click={() => {
+						publishRail($state.activeRail);
+					}}
+				>
+					<div class="flex content-center justify-center">
+						<Send class="inline" />
+						<p class="inline ml-2">Publish {titleCase($state.activeRail)}</p>
+						{#if $state.publishRailInProgress}<div class="spinner-container inline">
+								<Spinner size="sm" />
+							</div>{/if}{#if $state.errors.saveRail}<Icon name="x-circle" class="inline" />{/if}
+					</div></Button
+				>
+				<Button
+					size="lg"
+					color="primary"
+					on:click={() => {
+						refreshRail($state.activeRail);
+					}}
+				>
+					<div class="flex content-center justify-center">
+						<RefreshCw class="inline" />
+						<p class="inline ml-2">Refresh {titleCase($state.activeRail)}</p>
+					</div></Button
+				>
+			</div>
 		{/if}
 	</div>
 </div>

@@ -29,7 +29,5 @@
 		</li>
 	{/each}
 {/await}
-<hr />
-	<p class="text-lg pt-3 cursor-pointer underline" on:click={() => dispatchSend('gotoRail', { railID: 'config' })}>Configuration</p>
 
 </ul>
