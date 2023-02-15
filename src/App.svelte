@@ -306,10 +306,12 @@
 		} else if (fileRole == 'icon') {
 			$RailMap.content[categoryIndex].icon = file;
 		} else if (fileRole == 'inlineAudioClip') {
+			console.log(file)
 			$DREXItem.content['inlineAudioClip'] = {
 				source: file,
 				label: ''
 			}
+			console.log($DREXItem.content)
 		} else {
 			$DREXItem.content[fileRole] = file;
 		}

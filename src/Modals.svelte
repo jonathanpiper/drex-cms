@@ -14,6 +14,23 @@
 		});
 	}
 
+	function validateForm() {
+		let form = document.getElementById('form');
+		let inputs = form.querySelectorAll('input, textarea');
+		let errors = 0;
+		inputs.forEach((input) => {
+			if (input.value.length == 0) {
+				input.style.borderColor = 'red';
+				errors++;
+			} else {
+				input.style.borderColor = '#ced4da';
+			}
+		});
+		if (errors == 0) {
+			dispatchSend('addNewItem', { item: $newItem });
+		}
+	}
+
 	function submitForm(e) {
 		e.preventDefault();
 		$state.fileUploadInProgress = true;
@@ -68,7 +85,7 @@
 		>
 			Create new item
 		</button>
-		<div class="my-2">
+		<div id="form" class="my-2">
 			{#if $state.flagNewOrExisting == 'existing'}
 				{#if Object.keys($listItemsOfType).length > 0}
 					<p class="">Select an existing {$newItem.type}:</p>
@@ -214,16 +231,13 @@
 					<Input type="text" bind:value={$newItem.content['credit']} />
 				</FormGroup>
 			{/if}
+			<p>Note that all fields are required.</p>
 		</div>
 	</ModalBody>
 	<ModalFooter>
 		{#if $state.flagNewOrExisting == 'new'}
 			{#if $state.errors.createNewItem}Error creating new item{/if}
-			<Button
-				color="primary"
-				on:click={() => {
-					dispatchSend('addNewItem', { item: $newItem });
-				}}
+			<Button color="primary" on:click={validateForm}
 				>Save{#if $state.createItemInProgress}<div class="spinner-container"><Spinner size="sm" /></div>{/if}</Button
 			>
 		{/if}
@@ -266,7 +280,7 @@
 		<ul class="file-list list-unstyled">
 			{#each $fileList.files as file}
 				{#if $activeFile.type == 'objects'}
-					{#if file.indexOf($DREXItem.content.objectID) != -1 && !DEFAULTS.altSizes.some(size => file.includes(size))}
+					{#if file.indexOf($DREXItem.content.objectID) != -1 && !DEFAULTS.altSizes.some((size) => file.includes(size))}
 						<li
 							on:click={() => {
 								dispatchSend('setFile', { file: file, role: $activeFile.role, type: $activeFile.type, index: $activeFile.index, categoryIndex: $activeFile.categoryIndex });

@@ -77,10 +77,11 @@ export function setObjectImageFile(imageArray = [], imageFile, imageIndex) {
     }
     let image = new Image();
     image.src = MEDIAPATH + 'objects/' + imageFile;
-    console.log(image, 'image')
+    console.log(image, image.height, image.width, 'image')
     imageArray[imageIndex].name = imageFile.slice(0, -4).split('_')[1];
     imageArray[imageIndex].width = image.width;
     imageArray[imageIndex].height = image.height;
+    console.log(image.height, image.width)
     imageArray[imageIndex].altsizes = ['_half', '_quarter', '_threequarter'];
     console.log(imageArray);
     return imageArray;
