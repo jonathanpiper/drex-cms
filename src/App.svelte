@@ -150,6 +150,7 @@
 	async function saveItem(item) {
 		try {
 			$state.saveItemInProgress = true;
+			console.log(item);
 			var request = await fetch(DREXPATH + 'update/item/' + item.identifier, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },

@@ -77,6 +77,9 @@ export function setObjectImageFile(imageArray = [], imageFile, imageIndex) {
     }
     let image = new Image();
     image.src = MEDIAPATH + 'objects/' + imageFile;
+    while (image.height == 0) {
+        image.src = MEDIAPATH + 'objects/' + imageFile;
+    }
     console.log(image, image.height, image.width, 'image')
     imageArray[imageIndex].name = imageFile.slice(0, -4).split('_')[1];
     imageArray[imageIndex].width = image.width;
