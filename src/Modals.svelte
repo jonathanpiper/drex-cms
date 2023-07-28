@@ -283,6 +283,7 @@
 					{#if file.indexOf($DREXItem.content.objectID) != -1 && !DEFAULTS.altSizes.some((size) => file.includes(size))}
 						<li
 							on:click={() => {
+								console.log(file, $activeFile)
 								dispatchSend('setFile', { file: file, role: $activeFile.role, type: $activeFile.type, index: $activeFile.index, categoryIndex: $activeFile.categoryIndex });
 							}}
 						>

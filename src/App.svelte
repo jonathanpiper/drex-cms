@@ -293,10 +293,10 @@
 		return promise;
 	}
 
-	function setFile(file, fileRole, fileType, fileIndex, categoryIndex) {
+	async function setFile(file, fileRole, fileType, fileIndex, categoryIndex) {
 		if (fileRole == 'images') {
 			if (fileType == 'objects') {
-				$DREXItem.content.images = setObjectImageFile($DREXItem.content.images, file, fileIndex);
+				$DREXItem.content.images = await setObjectImageFile($DREXItem.content.images, file, fileIndex);
 			} else {
 				$DREXItem.content.images = setItemImageFile($DREXItem.content.images, file, fileIndex);
 			}
